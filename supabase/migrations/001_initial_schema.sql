@@ -1,5 +1,22 @@
 -- People's Choice Beer Voting - Initial Schema
 -- Run this migration in Supabase SQL Editor to set up the database
+--
+-- SECURITY NOTE: UUID-Based Voter Authentication
+-- ============================================================================
+-- Voters are identified by UUID in the URL (e.g., /vote/[event_id]/[voter_uuid]).
+-- This is "URL-as-auth" - anyone with the URL can vote as that voter.
+--
+-- Tradeoff: RLS cannot verify voter ownership since voters aren't authenticated.
+-- The votes and feedback tables use permissive policies (USING true) because:
+--   1. The voter_id is an unguessable UUID from a physical QR card
+--   2. ~100 voters per event makes brute-force impractical
+--   3. This is a casual homebrew competition, not a high-stakes election
+--
+-- The app layer validates that voter_id matches the URL parameter, but this
+-- is defense-in-depth, not the primary security boundary. The UUID secrecy is.
+--
+-- If stronger guarantees are needed, consider: session tokens, signed JWTs,
+-- or requiring voters to "claim" their card with a PIN.
 
 -- ============================================================================
 -- TABLES
@@ -89,13 +106,16 @@ CREATE INDEX idx_feedback_voter_id ON feedback(voter_id);
 CREATE INDEX idx_feedback_beer_id ON feedback(beer_id);
 CREATE INDEX idx_brewer_tokens_beer_id ON brewer_tokens(beer_id);
 CREATE INDEX idx_event_admins_admin_id ON event_admins(admin_id);
+CREATE INDEX idx_event_admins_event_id ON event_admins(event_id);
 
 -- ============================================================================
 -- TRIGGER: Auto-create brewer_token when beer is inserted
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION create_brewer_token()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER  -- Required: allows trigger to insert into brewer_tokens when public users insert beers
+AS $$
 BEGIN
   INSERT INTO brewer_tokens (beer_id)
   VALUES (NEW.id);
@@ -222,24 +242,23 @@ CREATE POLICY "beers_delete_admin"
 -- ============================================================================
 -- RLS POLICIES: votes
 -- ============================================================================
+-- See SECURITY NOTE at top of file re: UUID-based voter auth tradeoffs.
+-- App layer validates voter_id matches URL param; RLS permits based on UUID secrecy.
 
--- Voters can read their own votes
 CREATE POLICY "votes_select_own"
   ON votes FOR SELECT
   TO public
-  USING (true);  -- voter_id is the UUID from URL, no auth to check
+  USING (true);
 
--- Voters can insert their own votes
 CREATE POLICY "votes_insert_own"
   ON votes FOR INSERT
   TO public
-  WITH CHECK (true);  -- voter_id comes from URL, validated in app
+  WITH CHECK (true);
 
--- Voters can update their own votes
 CREATE POLICY "votes_update_own"
   ON votes FOR UPDATE
   TO public
-  USING (true);  -- voter_id comes from URL, validated in app
+  USING (true);
 
 -- Admins can read votes for events they're assigned to (for totals)
 CREATE POLICY "votes_select_admin"
@@ -257,20 +276,19 @@ CREATE POLICY "votes_select_admin"
 -- ============================================================================
 -- RLS POLICIES: feedback
 -- ============================================================================
+-- See SECURITY NOTE at top of file re: UUID-based voter auth tradeoffs.
+-- App layer validates voter_id matches URL param; RLS permits based on UUID secrecy.
 
--- Voters can read their own feedback
 CREATE POLICY "feedback_select_own"
   ON feedback FOR SELECT
   TO public
   USING (true);
 
--- Voters can insert feedback
 CREATE POLICY "feedback_insert_public"
   ON feedback FOR INSERT
   TO public
   WITH CHECK (true);
 
--- Voters can update their own feedback
 CREATE POLICY "feedback_update_own"
   ON feedback FOR UPDATE
   TO public
@@ -328,12 +346,13 @@ CREATE POLICY "admins_insert_admin"
     EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
   );
 
--- Admins can delete other admins (cannot delete self - enforced in app)
+-- Admins can delete other admins (cannot delete self)
 CREATE POLICY "admins_delete_admin"
   ON admins FOR DELETE
   TO authenticated
   USING (
     EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    AND user_id != auth.uid()  -- Prevent self-deletion
   );
 
 -- ============================================================================
