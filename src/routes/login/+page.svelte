@@ -35,7 +35,7 @@
 	<div class="w-full max-w-sm">
 		<h1 class="heading text-center mb-6">Admin Login</h1>
 
-		<form class="card space-y-4" onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }}>
+		<form class="card space-y-4" onsubmit={handleSubmit}>
 			<div>
 				<label class="label" for="email">Email</label>
 				<input
