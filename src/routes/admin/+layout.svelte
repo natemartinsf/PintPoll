@@ -1,13 +1,5 @@
 <script lang="ts">
-	import { supabase } from '$lib/supabase';
-
 	let { data, children } = $props();
-
-	async function handleLogout() {
-		await supabase.auth.signOut();
-		// Hard redirect to ensure server clears the auth cookies
-		window.location.href = '/login';
-	}
 </script>
 
 {#if !data.isAdmin}
@@ -17,9 +9,9 @@
 			<p class="text-muted mb-6">
 				You're signed in as {data.user?.email}, but this account doesn't have admin access.
 			</p>
-			<div class="flex gap-3 justify-center">
-				<button class="btn-secondary" onclick={handleLogout}>Sign out</button>
-			</div>
+			<form method="POST" action="/logout" class="flex justify-center">
+				<button type="submit" class="btn-secondary">Sign out</button>
+			</form>
 		</div>
 	</div>
 {:else}
@@ -31,7 +23,9 @@
 				</a>
 				<div class="flex items-center gap-4">
 					<span class="text-sm text-muted">{data.admin?.email}</span>
-					<button class="btn-ghost text-sm py-2" onclick={handleLogout}>Logout</button>
+					<form method="POST" action="/logout">
+						<button type="submit" class="btn-ghost text-sm py-2">Logout</button>
+					</form>
 				</div>
 			</div>
 		</header>
