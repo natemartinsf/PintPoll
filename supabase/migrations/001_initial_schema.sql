@@ -157,9 +157,7 @@ CREATE POLICY "events_select_public"
 CREATE POLICY "events_insert_admin"
   ON events FOR INSERT
   TO authenticated
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
-  );
+  WITH CHECK (is_admin());
 
 -- Admins can update/delete only events they're assigned to
 CREATE POLICY "events_update_admin"
@@ -299,33 +297,46 @@ CREATE POLICY "brewer_tokens_select_public"
 -- No direct insert policy needed
 
 -- ============================================================================
+-- HELPER FUNCTION: Check if current user is an admin (bypasses RLS)
+-- ============================================================================
+-- Used in RLS policies on the admins table to avoid infinite recursion.
+-- SECURITY DEFINER runs as the function owner, bypassing RLS checks.
+
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.admins WHERE user_id = auth.uid()
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
 -- RLS POLICIES: admins
 -- ============================================================================
 
--- Authenticated users can see their own admin record (to check if they're an admin)
--- OR admins can see all admin records (for admin management UI)
+-- Admins can see all admin records (for admin management UI)
+-- Uses is_admin() helper to avoid infinite recursion
 CREATE POLICY "admins_select"
   ON admins FOR SELECT
   TO authenticated
-  USING (
-    user_id = (select auth.uid())
-    OR EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
-  );
+  USING (is_admin());
 
 -- Admins can insert new admins
 CREATE POLICY "admins_insert_admin"
   ON admins FOR INSERT
   TO authenticated
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
-  );
+  WITH CHECK (is_admin());
 
 -- Admins can delete other admins (cannot delete self)
 CREATE POLICY "admins_delete_admin"
   ON admins FOR DELETE
   TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
+    is_admin()
     AND user_id != (select auth.uid())  -- Prevent self-deletion
   );
 
@@ -333,46 +344,23 @@ CREATE POLICY "admins_delete_admin"
 -- RLS POLICIES: event_admins
 -- ============================================================================
 
--- Admins can see event_admin assignments for events they're assigned to
+-- Admins can see all event_admin assignments (needed for admin management UI)
 CREATE POLICY "event_admins_select_admin"
   ON event_admins FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM event_admins ea2
-      JOIN admins a ON ea2.admin_id = a.id
-      WHERE ea2.event_id = event_admins.event_id AND a.user_id = (select auth.uid())
-    )
-    OR
-    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
-  );
+  USING (is_admin());
 
--- Admins can insert event_admin assignments for events they're assigned to
+-- Admins can insert event_admin assignments (for assigning admins to events)
 CREATE POLICY "event_admins_insert_admin"
   ON event_admins FOR INSERT
   TO authenticated
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM event_admins ea
-      JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = event_admins.event_id AND a.user_id = (select auth.uid())
-    )
-    OR
-    -- Allow first admin assignment (creator assigning self)
-    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
-  );
+  WITH CHECK (is_admin());
 
--- Admins can delete event_admin assignments for events they're assigned to
+-- Admins can delete event_admin assignments
 CREATE POLICY "event_admins_delete_admin"
   ON event_admins FOR DELETE
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM event_admins ea
-      JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = event_admins.event_id AND a.user_id = (select auth.uid())
-    )
-  );
+  USING (is_admin());
 
 -- ============================================================================
 -- ENABLE REALTIME
