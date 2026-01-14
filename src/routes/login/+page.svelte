@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { supabase } from '$lib/supabase';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let email = $state('');
 	let password = $state('');
 	let error = $state('');
 	let loading = $state(false);
+
+	onMount(async () => {
+		const { data } = await supabase.auth.getSession();
+		if (data.session) {
+			goto('/admin');
+		}
+	});
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -69,10 +77,6 @@
 			<button class="btn-primary w-full" type="submit" disabled={loading}>
 				{loading ? 'Signing in...' : 'Sign in'}
 			</button>
-
-			<p class="text-center text-sm text-muted">
-				New admin? <a href="/signup">Create an account</a>
-			</p>
 		</form>
 	</div>
 </div>
