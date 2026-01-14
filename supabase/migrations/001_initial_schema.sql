@@ -115,9 +115,10 @@ CREATE INDEX idx_event_admins_event_id ON event_admins(event_id);
 CREATE OR REPLACE FUNCTION create_brewer_token()
 RETURNS TRIGGER
 SECURITY DEFINER  -- Required: allows trigger to insert into brewer_tokens when public users insert beers
+SET search_path = ''  -- Security: prevent search_path hijacking in SECURITY DEFINER functions
 AS $$
 BEGIN
-  INSERT INTO brewer_tokens (beer_id)
+  INSERT INTO public.brewer_tokens (beer_id)
   VALUES (NEW.id);
   RETURN NEW;
 END;
@@ -157,7 +158,7 @@ CREATE POLICY "events_insert_admin"
   ON events FOR INSERT
   TO authenticated
   WITH CHECK (
-    EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
   );
 
 -- Admins can update/delete only events they're assigned to
@@ -168,7 +169,7 @@ CREATE POLICY "events_update_admin"
     EXISTS (
       SELECT 1 FROM event_admins ea
       JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = events.id AND a.user_id = auth.uid()
+      WHERE ea.event_id = events.id AND a.user_id = (select auth.uid())
     )
   );
 
@@ -179,7 +180,7 @@ CREATE POLICY "events_delete_admin"
     EXISTS (
       SELECT 1 FROM event_admins ea
       JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = events.id AND a.user_id = auth.uid()
+      WHERE ea.event_id = events.id AND a.user_id = (select auth.uid())
     )
   );
 
@@ -224,7 +225,7 @@ CREATE POLICY "beers_update_admin"
     EXISTS (
       SELECT 1 FROM event_admins ea
       JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = beers.event_id AND a.user_id = auth.uid()
+      WHERE ea.event_id = beers.event_id AND a.user_id = (select auth.uid())
     )
   );
 
@@ -235,7 +236,7 @@ CREATE POLICY "beers_delete_admin"
     EXISTS (
       SELECT 1 FROM event_admins ea
       JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = beers.event_id AND a.user_id = auth.uid()
+      WHERE ea.event_id = beers.event_id AND a.user_id = (select auth.uid())
     )
   );
 
@@ -260,18 +261,7 @@ CREATE POLICY "votes_update_own"
   TO public
   USING (true);
 
--- Admins can read votes for events they're assigned to (for totals)
-CREATE POLICY "votes_select_admin"
-  ON votes FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM beers b
-      JOIN event_admins ea ON b.event_id = ea.event_id
-      JOIN admins a ON ea.admin_id = a.id
-      WHERE b.id = votes.beer_id AND a.user_id = auth.uid()
-    )
-  );
+-- Note: No separate admin SELECT policy needed - public read covers admins too
 
 -- ============================================================================
 -- RLS POLICIES: feedback
@@ -299,6 +289,7 @@ CREATE POLICY "feedback_update_own"
 -- ============================================================================
 
 -- Public can read brewer_tokens (for feedback page validation)
+-- Note: No separate admin SELECT policy needed - public read covers admins too
 CREATE POLICY "brewer_tokens_select_public"
   ON brewer_tokens FOR SELECT
   TO public
@@ -307,35 +298,18 @@ CREATE POLICY "brewer_tokens_select_public"
 -- Insert handled by trigger (runs as definer)
 -- No direct insert policy needed
 
--- Admins can read brewer_tokens for events they're assigned to
-CREATE POLICY "brewer_tokens_select_admin"
-  ON brewer_tokens FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM beers b
-      JOIN event_admins ea ON b.event_id = ea.event_id
-      JOIN admins a ON ea.admin_id = a.id
-      WHERE b.id = brewer_tokens.beer_id AND a.user_id = auth.uid()
-    )
-  );
-
 -- ============================================================================
 -- RLS POLICIES: admins
 -- ============================================================================
 
--- Authenticated users can check if they're an admin
-CREATE POLICY "admins_select_self"
-  ON admins FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
-
--- Admins can see all admins (for admin management UI)
-CREATE POLICY "admins_select_all"
+-- Authenticated users can see their own admin record (to check if they're an admin)
+-- OR admins can see all admin records (for admin management UI)
+CREATE POLICY "admins_select"
   ON admins FOR SELECT
   TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    user_id = (select auth.uid())
+    OR EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
   );
 
 -- Admins can insert new admins
@@ -343,7 +317,7 @@ CREATE POLICY "admins_insert_admin"
   ON admins FOR INSERT
   TO authenticated
   WITH CHECK (
-    EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
   );
 
 -- Admins can delete other admins (cannot delete self)
@@ -351,8 +325,8 @@ CREATE POLICY "admins_delete_admin"
   ON admins FOR DELETE
   TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
-    AND user_id != auth.uid()  -- Prevent self-deletion
+    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
+    AND user_id != (select auth.uid())  -- Prevent self-deletion
   );
 
 -- ============================================================================
@@ -367,10 +341,10 @@ CREATE POLICY "event_admins_select_admin"
     EXISTS (
       SELECT 1 FROM event_admins ea2
       JOIN admins a ON ea2.admin_id = a.id
-      WHERE ea2.event_id = event_admins.event_id AND a.user_id = auth.uid()
+      WHERE ea2.event_id = event_admins.event_id AND a.user_id = (select auth.uid())
     )
     OR
-    EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
   );
 
 -- Admins can insert event_admin assignments for events they're assigned to
@@ -381,11 +355,11 @@ CREATE POLICY "event_admins_insert_admin"
     EXISTS (
       SELECT 1 FROM event_admins ea
       JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = event_admins.event_id AND a.user_id = auth.uid()
+      WHERE ea.event_id = event_admins.event_id AND a.user_id = (select auth.uid())
     )
     OR
     -- Allow first admin assignment (creator assigning self)
-    EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    EXISTS (SELECT 1 FROM admins WHERE user_id = (select auth.uid()))
   );
 
 -- Admins can delete event_admin assignments for events they're assigned to
@@ -396,7 +370,7 @@ CREATE POLICY "event_admins_delete_admin"
     EXISTS (
       SELECT 1 FROM event_admins ea
       JOIN admins a ON ea.admin_id = a.id
-      WHERE ea.event_id = event_admins.event_id AND a.user_id = auth.uid()
+      WHERE ea.event_id = event_admins.event_id AND a.user_id = (select auth.uid())
     )
   );
 
