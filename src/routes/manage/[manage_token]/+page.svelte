@@ -31,6 +31,18 @@
 					}
 				}
 			)
+			.on(
+				'postgres_changes',
+				{
+					event: 'DELETE',
+					schema: 'public',
+					table: 'beers'
+				},
+				(payload) => {
+					const deletedId = payload.old.id;
+					beers = beers.filter((b) => b.id !== deletedId);
+				}
+			)
 			.subscribe();
 
 		return () => {

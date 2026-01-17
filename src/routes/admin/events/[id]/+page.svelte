@@ -1,15 +1,56 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import { Files, Check } from 'lucide-svelte';
+	import type { Beer } from '$lib/types';
 
 	let { data, form } = $props();
 
 	let selectedAdminId = $state('');
 	let copied = $state(false);
+	let beers = $state<Beer[]>(data.beers);
 
 	const manageUrl = $derived(`${$page.url.origin}/manage/${data.event.manage_token}`);
 	const resultsUrl = $derived(`${$page.url.origin}/results/${data.event.id}`);
+
+	// Real-time subscription for beer updates
+	onMount(() => {
+		const channel = data.supabase
+			.channel('admin-beers-changes')
+			.on(
+				'postgres_changes',
+				{
+					event: 'INSERT',
+					schema: 'public',
+					table: 'beers',
+					filter: `event_id=eq.${data.event.id}`
+				},
+				(payload) => {
+					const newBeer = payload.new as Beer;
+					if (!beers.some((b) => b.id === newBeer.id)) {
+						beers = [...beers, newBeer];
+					}
+				}
+			)
+			.on(
+				'postgres_changes',
+				{
+					event: 'DELETE',
+					schema: 'public',
+					table: 'beers'
+				},
+				(payload) => {
+					const deletedId = payload.old.id;
+					beers = beers.filter((b) => b.id !== deletedId);
+				}
+			)
+			.subscribe();
+
+		return () => {
+			data.supabase.removeChannel(channel);
+		};
+	});
 
 	// Admins not yet assigned to this event
 	const availableAdmins = $derived(
@@ -97,15 +138,15 @@
 
 	<!-- Beers List -->
 	<div class="card">
-		<h2 class="text-lg font-semibold text-brown-900 mb-4">Beers ({data.beers.length})</h2>
+		<h2 class="text-lg font-semibold text-brown-900 mb-4">Beers ({beers.length})</h2>
 		{#if form?.error && form?.action === 'deleteBeer'}
 			<p class="text-red-600 text-sm mb-3">{form.error}</p>
 		{/if}
-		{#if data.beers.length === 0}
+		{#if beers.length === 0}
 			<p class="text-muted">No beers added yet. Share the manage URL with tap volunteers to add beers.</p>
 		{:else}
 			<ul class="divide-y divide-brown-100">
-				{#each data.beers as beer}
+				{#each beers as beer (beer.id)}
 					<li class="py-3 flex items-center justify-between">
 						<div>
 							<span class="font-medium text-brown-900">{beer.name}</span>
