@@ -84,7 +84,7 @@ export const actions: Actions = {
 	toggleResults: async ({ request, locals, params }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'toggleResults', error: 'Not authorized' });
 		}
 
 		const eventId = params.id;
@@ -97,7 +97,7 @@ export const actions: Actions = {
 			.single();
 
 		if (!currentAdmin) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'toggleResults', error: 'Not authorized' });
 		}
 
 		const { data: assignment } = await locals.supabase
@@ -108,7 +108,7 @@ export const actions: Actions = {
 			.single();
 
 		if (!assignment) {
-			return fail(403, { error: 'You are not assigned to this event' });
+			return fail(403, { action: 'toggleResults', error: 'You are not assigned to this event' });
 		}
 
 		const formData = await request.formData();
@@ -121,7 +121,7 @@ export const actions: Actions = {
 
 		if (error) {
 			console.error('Error updating results visibility:', error);
-			return fail(500, { error: 'Failed to update results visibility' });
+			return fail(500, { action: 'toggleResults', error: 'Failed to update results visibility' });
 		}
 
 		return { success: true };
@@ -130,7 +130,7 @@ export const actions: Actions = {
 	deleteBeer: async ({ request, locals, params }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'deleteBeer', error: 'Not authorized' });
 		}
 
 		const eventId = params.id;
@@ -143,7 +143,7 @@ export const actions: Actions = {
 			.single();
 
 		if (!currentAdmin) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'deleteBeer', error: 'Not authorized' });
 		}
 
 		const { data: assignment } = await locals.supabase
@@ -154,14 +154,14 @@ export const actions: Actions = {
 			.single();
 
 		if (!assignment) {
-			return fail(403, { error: 'You are not assigned to this event' });
+			return fail(403, { action: 'deleteBeer', error: 'You are not assigned to this event' });
 		}
 
 		const formData = await request.formData();
 		const beerId = formData.get('beerId')?.toString();
 
 		if (!beerId) {
-			return fail(400, { error: 'Beer ID is required' });
+			return fail(400, { action: 'deleteBeer', error: 'Beer ID is required' });
 		}
 
 		// Verify beer belongs to this event
@@ -173,14 +173,14 @@ export const actions: Actions = {
 			.single();
 
 		if (!beer) {
-			return fail(404, { error: 'Beer not found' });
+			return fail(404, { action: 'deleteBeer', error: 'Beer not found' });
 		}
 
 		const { error } = await locals.supabase.from('beers').delete().eq('id', beerId);
 
 		if (error) {
 			console.error('Error deleting beer:', error);
-			return fail(500, { error: 'Failed to delete beer' });
+			return fail(500, { action: 'deleteBeer', error: 'Failed to delete beer' });
 		}
 
 		return { beerDeleted: true };
@@ -189,7 +189,7 @@ export const actions: Actions = {
 	addEventAdmin: async ({ request, locals, params }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'addEventAdmin', error: 'Not authorized' });
 		}
 
 		const eventId = params.id;
@@ -202,7 +202,7 @@ export const actions: Actions = {
 			.single();
 
 		if (!currentAdmin) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'addEventAdmin', error: 'Not authorized' });
 		}
 
 		const { data: assignment } = await locals.supabase
@@ -213,14 +213,14 @@ export const actions: Actions = {
 			.single();
 
 		if (!assignment) {
-			return fail(403, { error: 'You are not assigned to this event' });
+			return fail(403, { action: 'addEventAdmin', error: 'You are not assigned to this event' });
 		}
 
 		const formData = await request.formData();
 		const adminId = formData.get('adminId')?.toString();
 
 		if (!adminId) {
-			return fail(400, { error: 'Admin ID is required' });
+			return fail(400, { action: 'addEventAdmin', error: 'Admin ID is required' });
 		}
 
 		// Check if already assigned
@@ -232,7 +232,7 @@ export const actions: Actions = {
 			.single();
 
 		if (existing) {
-			return fail(400, { error: 'Admin is already assigned to this event' });
+			return fail(400, { action: 'addEventAdmin', error: 'Admin is already assigned to this event' });
 		}
 
 		const { error } = await locals.supabase.from('event_admins').insert({
@@ -242,7 +242,7 @@ export const actions: Actions = {
 
 		if (error) {
 			console.error('Error adding event admin:', error);
-			return fail(500, { error: 'Failed to add admin to event' });
+			return fail(500, { action: 'addEventAdmin', error: 'Failed to add admin to event' });
 		}
 
 		return { adminAdded: true };
@@ -251,7 +251,7 @@ export const actions: Actions = {
 	removeEventAdmin: async ({ request, locals, params }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'removeEventAdmin', error: 'Not authorized' });
 		}
 
 		const eventId = params.id;
@@ -264,7 +264,7 @@ export const actions: Actions = {
 			.single();
 
 		if (!currentAdmin) {
-			return fail(403, { error: 'Not authorized' });
+			return fail(403, { action: 'removeEventAdmin', error: 'Not authorized' });
 		}
 
 		const { data: assignment } = await locals.supabase
@@ -275,14 +275,14 @@ export const actions: Actions = {
 			.single();
 
 		if (!assignment) {
-			return fail(403, { error: 'You are not assigned to this event' });
+			return fail(403, { action: 'removeEventAdmin', error: 'You are not assigned to this event' });
 		}
 
 		const formData = await request.formData();
 		const adminId = formData.get('adminId')?.toString();
 
 		if (!adminId) {
-			return fail(400, { error: 'Admin ID is required' });
+			return fail(400, { action: 'removeEventAdmin', error: 'Admin ID is required' });
 		}
 
 		// Check if trying to remove self
@@ -294,7 +294,7 @@ export const actions: Actions = {
 				.eq('event_id', eventId);
 
 			if (count === 1) {
-				return fail(400, { error: 'Cannot remove yourself as the only admin' });
+				return fail(400, { action: 'removeEventAdmin', error: 'Cannot remove yourself as the only admin' });
 			}
 		}
 
@@ -306,7 +306,7 @@ export const actions: Actions = {
 
 		if (error) {
 			console.error('Error removing event admin:', error);
-			return fail(500, { error: 'Failed to remove admin from event' });
+			return fail(500, { action: 'removeEventAdmin', error: 'Failed to remove admin from event' });
 		}
 
 		// If admin removed themselves, redirect to admin home

@@ -73,6 +73,9 @@
 				</button>
 			</form>
 		</div>
+		{#if form?.error && form?.action === 'toggleResults'}
+			<p class="text-red-600 text-sm mt-3">{form.error}</p>
+		{/if}
 		<div class="mt-4 pt-4 border-t border-brown-100">
 			<a href={resultsUrl} target="_blank" rel="noopener noreferrer" class="text-sm">
 				View Results Page &rarr;
@@ -83,6 +86,9 @@
 	<!-- Beers List -->
 	<div class="card">
 		<h2 class="text-lg font-semibold text-brown-900 mb-4">Beers ({data.beers.length})</h2>
+		{#if form?.error && form?.action === 'deleteBeer'}
+			<p class="text-red-600 text-sm mb-3">{form.error}</p>
+		{/if}
 		{#if data.beers.length === 0}
 			<p class="text-muted">No beers added yet. Share the manage URL with tap volunteers to add beers.</p>
 		{:else}
@@ -139,7 +145,7 @@
 			<p class="text-sm text-muted mb-4 italic">All admins are already assigned to this event.</p>
 		{/if}
 
-		{#if form?.error}
+		{#if form?.error && (form?.action === 'addEventAdmin' || form?.action === 'removeEventAdmin')}
 			<p class="text-red-600 text-sm mb-3">{form.error}</p>
 		{/if}
 
