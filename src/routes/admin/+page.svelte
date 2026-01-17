@@ -98,7 +98,9 @@
 	<!-- Event List -->
 	<div class="card">
 		<h2 class="text-lg font-semibold text-brown-900 mb-4">Your Events</h2>
-		{#if data.events.length === 0}
+		{#if data.error}
+			<p class="text-red-600">Failed to load events: {data.error}</p>
+		{:else if data.events.length === 0}
 			<p class="text-muted">No events yet. Create your first event above.</p>
 		{:else}
 			<ul class="divide-y divide-brown-100">

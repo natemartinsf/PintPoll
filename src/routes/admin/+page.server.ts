@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 
 	if (error) {
 		console.error('Error fetching events:', error);
-		return { events: [] as Event[] };
+		return { events: [] as Event[], error: error.message };
 	}
 
 	// Extract the events from the join result
