@@ -34,7 +34,7 @@ Tailwind CSS, no component library. The UI is simple (forms, lists, buttons) and
 ### Real-time Strategy
 
 - **Beer list (voters)**: Supabase subscription - new beers appear without refresh
-- **Results reveal**: Supabase subscription on `events.results_visible` - simultaneous reveal
+- **Results reveal**: Supabase subscription on `events.reveal_stage` - staged ceremony with admin-controlled timing
 - **Admin vote totals**: Polling every 10 seconds - simpler than aggregating subscriptions
 
 ### Brewer Tokens
@@ -45,6 +45,17 @@ Auto-created when a beer is added. Admin sees all brewer feedback URLs in the ad
 
 Built into admin UI. Admin enters count, system generates voter UUIDs, outputs printable HTML sheet (12 cards/page). Replaces the CLI script.
 
+### Staged Results Reveal
+
+Admin controls the awards ceremony timing manually with sequential button clicks:
+- **Stage 0**: Hidden (voting active)
+- **Stage 1**: Ceremony started (voters redirected, summary displayed: # beers, # voters, total points)
+- **Stage 2**: 3rd place revealed
+- **Stage 3**: 2nd place revealed
+- **Stage 4**: 1st place revealed with confetti
+
+This replaces the original `results_visible` boolean toggle. The staged approach lets the admin build suspense during the live ceremony rather than revealing everything at once. Reset returns to stage 0 (no backwards stepping through stages).
+
 ## Database Schema
 
 ```sql
@@ -54,7 +65,7 @@ events (
   name TEXT NOT NULL,
   date DATE,
   max_points INTEGER DEFAULT 5,
-  results_visible BOOLEAN DEFAULT FALSE,
+  reveal_stage INTEGER DEFAULT 0,  -- 0=hidden, 1=ceremony, 2=3rd, 3=2nd, 4=1st
   manage_token UUID UNIQUE DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 )
@@ -296,7 +307,7 @@ src/
   - Validates event_id exists
   - Creates voter record via upsert on load
   - Displays all beers for the event
-  - Shows "results not yet available" if results_visible is false
+  - Shows voting UI while `reveal_stage = 0`
 
 #### Task 5.2: Point Allocation Component
 - **What**: `PointPicker.svelte` for selecting points
@@ -333,25 +344,50 @@ src/
 
 ### Phase 6: Results & Reveal
 
-#### Task 6.1: Results Page
-- **What**: `/results/[event_id]` showing leaderboard with dramatic reveal
+#### Task 6.1: Database Migration - Staged Reveal
+- **What**: Replace `results_visible` boolean with `reveal_stage` integer
 - **Acceptance criteria**:
-  - Shows "results not yet revealed" if results_visible is false
-  - When visible: staggered reveal animation (3rd place → 2nd → 1st)
-  - Shows beer name, brewer, total points, number of voters
-  - Confetti/particle effect when 1st place is revealed (use canvas-confetti or similar)
-  - Large text, styled for projection/big screen viewing
-  - Rest of rankings shown after top 3 reveal
+  - Migration adds `reveal_stage INTEGER DEFAULT 0` to events table
+  - Stage values: 0=hidden, 1=ceremony (summary), 2=3rd place, 3=2nd place, 4=1st place
+  - Migration sets `reveal_stage = 4` for any events where `results_visible = true` (preserve existing state)
+  - Migration drops `results_visible` column
+  - TypeScript types updated (`Event.reveal_stage: number` replaces `results_visible: boolean`)
 
-#### Task 6.2: Results Reveal Subscription
-- **What**: Voter page subscribes to results_visible, redirects when revealed
+#### Task 6.2: Admin Staged Reveal UI
+- **What**: Replace results toggle with sequential ceremony buttons
 - **Acceptance criteria**:
-  - Voter page shows voting UI while results_visible is false
-  - When admin toggles results_visible to true, voter page redirects to `/results/[event_id]`
+  - Shows current stage status (Hidden / Ceremony / 3rd Revealed / 2nd Revealed / 1st Revealed)
+  - Single button advances to next stage with sequential text:
+    - Stage 0: "Start Ceremony" → advances to 1
+    - Stage 1: "Reveal 3rd Place" → advances to 2
+    - Stage 2: "Reveal 2nd Place" → advances to 3
+    - Stage 3: "Reveal 1st Place" → advances to 4
+    - Stage 4: button disabled or hidden (ceremony complete)
+  - "Reset" button appears when stage > 0, returns to stage 0 with confirmation
+  - Updates database in real-time
+
+#### Task 6.3: Results Page with Staged Display
+- **What**: `/results/[event_id]` showing staged leaderboard controlled by admin
+- **Acceptance criteria**:
+  - Stage 0: Shows "Results not yet revealed" (or redirects to event page)
+  - Stage 1+: Shows ceremony summary (number of beers, number of voters, total points cast)
+  - Stage 2+: 3rd place revealed with entrance animation
+  - Stage 3+: 2nd place revealed with entrance animation
+  - Stage 4: 1st place revealed with confetti (canvas-confetti or similar)
+  - Rest of rankings (4th place onward) shown after 1st place reveal
+  - Shows beer name, brewer, total points, number of voters
+  - Large text, styled for projection/big screen viewing
+  - Subscribes to `reveal_stage` changes for real-time updates
+
+#### Task 6.4: Voter Redirect on Ceremony Start
+- **What**: Voter page subscribes to `reveal_stage`, redirects when ceremony starts
+- **Acceptance criteria**:
+  - Voter page shows voting UI while `reveal_stage = 0`
+  - When admin advances to stage 1+, voter page redirects to `/results/[event_id]`
   - Redirect is immediate (real-time subscription)
   - All connected voters redirect simultaneously
 
-#### Task 6.3: Admin Live Vote Totals
+#### Task 6.5: Admin Live Vote Totals
 - **What**: Admin event detail shows current vote totals
 - **Acceptance criteria**:
   - Per-beer: total points, number of voters who rated
