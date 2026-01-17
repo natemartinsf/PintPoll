@@ -248,7 +248,7 @@ src/
 
 ### Phase 3: Event Management
 
-#### Task 3.1: Event List & Creation
+#### Task 3.1: Event List & Creation ✅
 - **What**: Admin home page showing assigned events, form to create new event
 - **Acceptance criteria**:
   - List of events admin is assigned to (filtered by event_admins)
@@ -258,7 +258,7 @@ src/
   - Click event to navigate to detail page
   - Delete event button with confirmation (only if assigned)
 
-#### Task 3.2: Event Detail Page
+#### Task 3.2: Event Detail Page ✅
 - **What**: Admin view for managing a single event
 - **Acceptance criteria**:
   - Shows event name, date, manage URL (copyable)
