@@ -374,6 +374,7 @@ CREATE POLICY "event_admins_delete_admin"
 -- Tables with policies only for 'authenticated' need explicit grants.
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON events TO authenticated;
+GRANT SELECT, DELETE ON beers TO authenticated;
 
 GRANT SELECT ON admins TO authenticated;
 GRANT INSERT ON admins TO authenticated;
