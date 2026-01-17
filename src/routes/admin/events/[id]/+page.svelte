@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
+	import { Files, Check } from 'lucide-svelte';
 
 	let { data, form } = $props();
 
@@ -45,10 +46,21 @@
 	<div class="card">
 		<h2 class="text-lg font-semibold text-brown-900 mb-3">Tap Volunteer URL</h2>
 		<p class="text-sm text-muted mb-3">Share this link with tap volunteers so they can add beers.</p>
-		<div class="flex gap-2">
-			<input type="text" readonly value={manageUrl} class="input flex-1 text-sm" />
-			<button type="button" onclick={() => copyToClipboard(manageUrl)} class="btn-secondary whitespace-nowrap">
-				{copied ? 'Copied!' : 'Copy'}
+		<div class="relative">
+			<input type="text" readonly value={manageUrl} class="input w-full text-sm pr-20" />
+			<button
+				type="button"
+				onclick={() => copyToClipboard(manageUrl)}
+				class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2 py-1 rounded text-sm text-brown-600 hover:text-brown-800 hover:bg-brown-100 transition-colors"
+				title={copied ? 'Copied!' : 'Copy to clipboard'}
+			>
+				{#if copied}
+					<Check class="w-4 h-4 text-green-600" />
+					<span class="text-green-600">Copied</span>
+				{:else}
+					<Files class="w-4 h-4" />
+					<span>Copy</span>
+				{/if}
 			</button>
 		</div>
 	</div>
