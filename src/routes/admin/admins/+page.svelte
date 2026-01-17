@@ -49,9 +49,13 @@
 		</form>
 		{#if form?.error}
 			<p class="text-red-600 text-sm mt-2">{form.error}</p>
+		{:else if form?.success}
+			<p class="text-green-600 text-sm mt-2">
+				{form.invited ? 'Invite sent! They can log in after setting their password.' : 'Admin added.'}
+			</p>
 		{/if}
 		<p class="text-muted text-sm mt-3">
-			The user must have already signed up before they can be added as an admin.
+			If the user doesn't have an account, they'll receive an invite email.
 		</p>
 	</div>
 
