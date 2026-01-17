@@ -25,9 +25,20 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 };
 
 export const actions: Actions = {
-	add: async ({ request, locals, parent }) => {
-		const parentData = await parent();
-		if (!parentData.isAdmin) {
+	add: async ({ request, locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) {
+			return fail(403, { error: 'Not authorized' });
+		}
+
+		// Verify user is admin
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin) {
 			return fail(403, { error: 'Not authorized' });
 		}
 
@@ -75,8 +86,8 @@ export const actions: Actions = {
 			userId = inviteData.user.id;
 		}
 
-		// Create admin record
-		const { error: insertError } = await supabaseAdmin
+		// Create admin record (use authenticated client - RLS allows admins to insert)
+		const { error: insertError } = await locals.supabase
 			.from('admins')
 			.insert({ user_id: userId, email });
 
@@ -91,9 +102,20 @@ export const actions: Actions = {
 		return { success: true, invited: !existingUser };
 	},
 
-	remove: async ({ request, locals, parent }) => {
-		const parentData = await parent();
-		if (!parentData.isAdmin) {
+	remove: async ({ request, locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) {
+			return fail(403, { error: 'Not authorized' });
+		}
+
+		// Verify user is admin and get their admin id
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin) {
 			return fail(403, { error: 'Not authorized' });
 		}
 
@@ -105,7 +127,7 @@ export const actions: Actions = {
 		}
 
 		// Prevent removing self
-		if (adminId === parentData.admin?.id) {
+		if (adminId === currentAdmin.id) {
 			return fail(400, { error: 'You cannot remove yourself' });
 		}
 

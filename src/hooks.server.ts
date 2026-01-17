@@ -1,5 +1,5 @@
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
-import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import type { Handle } from '@sveltejs/kit';
@@ -19,10 +19,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	});
 
-	// Admin client with service role (for auth.users queries)
+	// Admin client with service role (for auth.users queries, bypasses RLS)
 	// Will be null if service role key is not configured
-	event.locals.supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-		? createClient(PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+	event.locals.supabaseAdmin = env.SUPABASE_SERVICE_ROLE_KEY
+		? createClient(PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+				auth: {
+					autoRefreshToken: false,
+					persistSession: false
+				}
+			})
 		: null;
 
 	event.locals.safeGetSession = async () => {

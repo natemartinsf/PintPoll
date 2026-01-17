@@ -80,3 +80,9 @@ MCP servers are configured in `.mcp.json` for live documentation access:
 Manual reference:
 - SvelteKit: https://svelte.dev/docs/kit
 - Tailwind CSS: https://tailwindcss.com/docs
+
+## Development Workflow
+
+**Verification**: Dev server runs in background. Don't run `npm run build` to verify changes—ask the user to confirm in browser instead.
+
+**Supabase**: No MCP server available. Use WebSearch for current Supabase docs (especially @supabase/ssr, RLS policies, auth patterns) rather than relying on training data.
