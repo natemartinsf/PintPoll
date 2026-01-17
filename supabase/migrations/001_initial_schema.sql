@@ -318,12 +318,16 @@ $$ LANGUAGE plpgsql;
 -- RLS POLICIES: admins
 -- ============================================================================
 
--- Admins can see all admin records (for admin management UI)
--- Uses is_admin() helper to avoid infinite recursion
+-- Users can see their own admin record (to check if they're an admin)
+-- Admins can see all records (for admin management UI)
+-- Uses is_admin() helper to avoid infinite recursion on the "see all" check
 CREATE POLICY "admins_select"
   ON admins FOR SELECT
   TO authenticated
-  USING (is_admin());
+  USING (
+    user_id = (select auth.uid())
+    OR is_admin()
+  );
 
 -- Admins can insert new admins
 CREATE POLICY "admins_insert_admin"
