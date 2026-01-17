@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Admin } from '$lib/types';
 
@@ -6,7 +6,7 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 	const parentData = await parent();
 
 	if (!parentData.isAdmin) {
-		return { admins: [] as Admin[] };
+		throw redirect(303, '/admin');
 	}
 
 	const { data: admins, error } = await locals.supabase
