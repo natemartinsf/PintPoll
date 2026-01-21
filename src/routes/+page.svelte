@@ -1,3 +1,14 @@
+<script lang="ts">
+	import PointPicker from '$lib/components/PointPicker.svelte';
+
+	const maxPoints = 10;
+	let beer1Points = $state(3);
+	let beer2Points = $state(1);
+	let beer3Points = $state(0);
+
+	const remaining = $derived(maxPoints - beer1Points - beer2Points - beer3Points);
+</script>
+
 <!-- Design Preview - Remove this file's contents after approval -->
 <div class="min-h-screen p-6 max-w-2xl mx-auto">
 	<h1 class="heading mb-2">People's Choice Beer Voting</h1>
@@ -95,84 +106,51 @@
 		</div>
 	</section>
 
-	<!-- Example: Point Allocation Mock -->
+	<!-- Example: Point Allocation with PointPicker Component -->
 	<section class="mb-8">
-		<h2 class="subheading mb-4">Point Allocation (Mock)</h2>
-		<p class="text-sm text-brown-500 mb-3">10 max points, 4 used elsewhere, 6 remaining</p>
+		<h2 class="subheading mb-4">Point Allocation (Interactive)</h2>
+		<p class="text-sm text-brown-500 mb-3">{maxPoints} max points, {maxPoints - remaining} used, {remaining} remaining</p>
 
-		<!-- Beer with 3 points allocated (max selectable: 3 + 6 = 9) -->
+		<!-- Beer 1 -->
 		<div class="card mb-3">
 			<div class="flex justify-between items-center mb-3">
 				<div>
 					<h3 class="font-semibold text-brown-800">Belgian Tripel</h3>
 					<p class="text-sm text-brown-500">Brewed by Dan K.</p>
 				</div>
-				<span class="text-amber-600 font-bold text-xl">3 pts</span>
+				<span class={beer1Points > 0 ? 'text-amber-600 font-bold text-xl' : 'text-brown-400 font-bold text-xl'}>
+					{beer1Points} {beer1Points === 1 ? 'pt' : 'pts'}
+				</span>
 			</div>
-			<div class="flex gap-1.5 flex-wrap">
-				{#each [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as points}
-					<button
-						class={points === 3
-							? 'point-btn-selected'
-							: points > 9
-								? 'point-btn-disabled'
-								: 'point-btn'}
-						disabled={points > 9}
-					>
-						{points}
-					</button>
-				{/each}
-			</div>
+			<PointPicker max={maxPoints} bind:value={beer1Points} maxSelectable={beer1Points + remaining} />
 		</div>
 
-		<!-- Beer with 1 point allocated (max selectable: 1 + 6 = 7) -->
+		<!-- Beer 2 -->
 		<div class="card mb-3">
 			<div class="flex justify-between items-center mb-3">
 				<div>
 					<h3 class="font-semibold text-brown-800">Oatmeal Stout</h3>
 					<p class="text-sm text-brown-500">Brewed by Mike T.</p>
 				</div>
-				<span class="text-amber-600 font-bold text-xl">1 pt</span>
+				<span class={beer2Points > 0 ? 'text-amber-600 font-bold text-xl' : 'text-brown-400 font-bold text-xl'}>
+					{beer2Points} {beer2Points === 1 ? 'pt' : 'pts'}
+				</span>
 			</div>
-			<div class="flex gap-1.5 flex-wrap">
-				{#each [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as points}
-					<button
-						class={points === 1
-							? 'point-btn-selected'
-							: points > 7
-								? 'point-btn-disabled'
-								: 'point-btn'}
-						disabled={points > 7}
-					>
-						{points}
-					</button>
-				{/each}
-			</div>
+			<PointPicker max={maxPoints} bind:value={beer2Points} maxSelectable={beer2Points + remaining} />
 		</div>
 
-		<!-- Beer with no points (max selectable: 0 + 6 = 6) -->
+		<!-- Beer 3 -->
 		<div class="card">
 			<div class="flex justify-between items-center mb-3">
 				<div>
 					<h3 class="font-semibold text-brown-800">Hop Monster IPA</h3>
 					<p class="text-sm text-brown-500">Brewed by Sarah M.</p>
 				</div>
-				<span class="text-brown-400 font-bold text-xl">0 pts</span>
+				<span class={beer3Points > 0 ? 'text-amber-600 font-bold text-xl' : 'text-brown-400 font-bold text-xl'}>
+					{beer3Points} {beer3Points === 1 ? 'pt' : 'pts'}
+				</span>
 			</div>
-			<div class="flex gap-1.5 flex-wrap">
-				{#each [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as points}
-					<button
-						class={points === 0
-							? 'point-btn-selected'
-							: points > 6
-								? 'point-btn-disabled'
-								: 'point-btn'}
-						disabled={points > 6}
-					>
-						{points}
-					</button>
-				{/each}
-			</div>
+			<PointPicker max={maxPoints} bind:value={beer3Points} maxSelectable={beer3Points + remaining} />
 		</div>
 	</section>
 </div>
