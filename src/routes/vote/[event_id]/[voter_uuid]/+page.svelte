@@ -4,7 +4,13 @@
 
 	let { data } = $props();
 
-	let beers = $state<Beer[]>(data.beers);
+	// Initialize beers from server data
+	let beers = $state<Beer[]>([]);
+
+	// Sync from server data (runs once on mount, and if data.beers changes)
+	$effect(() => {
+		beers = [...data.beers];
+	});
 
 	// Real-time subscription for beer updates
 	onMount(() => {

@@ -22,16 +22,43 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw redirect(303, `/results/${eventId}`);
 	}
 
-	// Upsert voter record (creates if doesn't exist)
-	const { data: voter, error: voterError } = await locals.supabase
+	// Get or create voter record
+	// Using select-then-insert instead of upsert to avoid needing UPDATE permission
+	let voter: Voter | null = null;
+
+	const { data: existingVoter } = await locals.supabase
 		.from('voters')
-		.upsert({ id: voterUuid, event_id: eventId })
-		.select()
+		.select('*')
+		.eq('id', voterUuid)
+		.eq('event_id', eventId)
 		.single();
 
-	if (voterError) {
-		console.error('Error upserting voter:', voterError);
-		throw error(500, 'Failed to register voter');
+	if (existingVoter) {
+		voter = existingVoter as Voter;
+	} else {
+		const { data: newVoter, error: insertError } = await locals.supabase
+			.from('voters')
+			.insert({ id: voterUuid, event_id: eventId })
+			.select()
+			.single();
+
+		if (insertError) {
+			// Could be a race condition - try select again
+			const { data: raceVoter } = await locals.supabase
+				.from('voters')
+				.select('*')
+				.eq('id', voterUuid)
+				.single();
+
+			if (raceVoter) {
+				voter = raceVoter as Voter;
+			} else {
+				console.error('Error creating voter:', insertError);
+				throw error(500, 'Failed to register voter');
+			}
+		} else {
+			voter = newVoter as Voter;
+		}
 	}
 
 	// Get beers for this event
