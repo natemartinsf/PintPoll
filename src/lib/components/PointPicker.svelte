@@ -8,12 +8,14 @@
 		maxSelectable: number;
 		/** Called when selection changes */
 		onchange?: (value: number) => void;
+		/** Disable all buttons (e.g., during save) */
+		disabled?: boolean;
 	}
 
-	let { max, value = $bindable(0), maxSelectable, onchange }: Props = $props();
+	let { max, value = $bindable(0), maxSelectable, onchange, disabled = false }: Props = $props();
 
 	function select(points: number) {
-		if (points > maxSelectable) return;
+		if (disabled || points > maxSelectable) return;
 		value = points;
 		onchange?.(points);
 	}
@@ -25,10 +27,10 @@
 			type="button"
 			class={points === value
 				? 'point-btn-selected'
-				: points > maxSelectable
+				: disabled || points > maxSelectable
 					? 'point-btn-disabled'
 					: 'point-btn'}
-			disabled={points > maxSelectable}
+			disabled={disabled || points > maxSelectable}
 			onclick={() => select(points)}
 		>
 			{points}

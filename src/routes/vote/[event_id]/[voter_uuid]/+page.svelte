@@ -14,6 +14,9 @@
 	// Error state for failed saves
 	let saveError = $state<string | null>(null);
 
+	// Track if a save is in progress (prevents race conditions from rapid clicks)
+	let saving = $state(false);
+
 	// Sync from server data (runs once on mount, and if data.beers changes)
 	$effect(() => {
 		beers = [...data.beers];
@@ -42,36 +45,43 @@
 
 	// Handle vote change
 	async function handleVoteChange(beerId: string, newPoints: number) {
+		if (saving) return; // Prevent concurrent saves
+
 		const oldPoints = votesByBeer[beerId] ?? 0;
 
-		// Optimistically update UI
+		// Optimistically update UI and lock during save
 		votesByBeer[beerId] = newPoints;
 		saveError = null;
+		saving = true;
 
-		// Upsert to database
-		const { error } = await data.supabase.from('votes').upsert(
-			{
-				voter_id: data.voter.id,
-				beer_id: beerId,
-				points: newPoints,
-				updated_at: new Date().toISOString()
-			},
-			{
-				onConflict: 'voter_id,beer_id'
+		try {
+			// Upsert to database
+			const { error } = await data.supabase.from('votes').upsert(
+				{
+					voter_id: data.voter.id,
+					beer_id: beerId,
+					points: newPoints,
+					updated_at: new Date().toISOString()
+				},
+				{
+					onConflict: 'voter_id,beer_id'
+				}
+			);
+
+			if (error) {
+				// Revert on failure
+				votesByBeer[beerId] = oldPoints;
+
+				// Check error code for structured detection (P0002 = VOTE_LIMIT_EXCEEDED)
+				if (error.code === 'P0002') {
+					saveError = `You've used all ${data.event.max_points} points. Remove points from another beer first.`;
+				} else {
+					saveError = 'Failed to save vote. Please try again.';
+				}
+				console.error('Error saving vote:', error);
 			}
-		);
-
-		if (error) {
-			// Revert on failure
-			votesByBeer[beerId] = oldPoints;
-
-			// Check if it's a validation error (total points exceeded)
-			if (error.message?.includes('would exceed maximum')) {
-				saveError = `You've used all ${data.event.max_points} points. Remove points from another beer first.`;
-			} else {
-				saveError = 'Failed to save vote. Please try again.';
-			}
-			console.error('Error saving vote:', error);
+		} finally {
+			saving = false;
 		}
 	}
 
@@ -161,6 +171,7 @@
 							max={data.event.max_points}
 							value={votesByBeer[beer.id] ?? 0}
 							maxSelectable={getMaxSelectable(beer.id)}
+							disabled={saving}
 							onchange={(points) => handleVoteChange(beer.id, points)}
 						/>
 					</div>

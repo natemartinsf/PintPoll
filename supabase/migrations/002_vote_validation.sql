@@ -17,10 +17,22 @@ BEGIN
   FROM public.beers
   WHERE id = NEW.beer_id;
 
+  -- Beer must exist (FK constraint should prevent this, but defense in depth)
+  IF v_event_id IS NULL THEN
+    RAISE EXCEPTION 'VOTE_INVALID_BEER: Beer does not exist'
+      USING ERRCODE = 'P0001';
+  END IF;
+
   -- Get the max_points for this event
   SELECT max_points INTO v_max_points
   FROM public.events
   WHERE id = v_event_id;
+
+  -- Event must exist and have max_points set
+  IF v_max_points IS NULL THEN
+    RAISE EXCEPTION 'VOTE_INVALID_EVENT: Event does not exist or has no max_points'
+      USING ERRCODE = 'P0001';
+  END IF;
 
   -- Calculate current total for this voter (excluding the beer being updated)
   SELECT COALESCE(SUM(points), 0) INTO v_current_total
@@ -35,14 +47,17 @@ BEGIN
 
   -- Reject if over limit
   IF v_new_total > v_max_points THEN
-    RAISE EXCEPTION 'Vote rejected: total points (%) would exceed maximum allowed (%) for this event', v_new_total, v_max_points;
+    RAISE EXCEPTION 'VOTE_LIMIT_EXCEEDED: Total points (%) would exceed maximum (%) for this event', v_new_total, v_max_points
+      USING ERRCODE = 'P0002';
   END IF;
 
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+-- Only fire on INSERT or UPDATE (not DELETE, which has no NEW record)
 CREATE TRIGGER trigger_validate_vote_total
   BEFORE INSERT OR UPDATE ON votes
   FOR EACH ROW
+  WHEN (pg_trigger_depth() = 0)  -- Prevent recursive trigger calls
   EXECUTE FUNCTION validate_vote_total();
