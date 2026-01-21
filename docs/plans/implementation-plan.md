@@ -283,7 +283,7 @@ src/
 
 ### Phase 4: Beer Management
 
-#### Task 4.1: Manage Page (Tap Volunteers)
+#### Task 4.1: Manage Page (Tap Volunteers) ✅
 - **What**: `/manage/[manage_token]` route for adding beers
 - **Acceptance criteria**:
   - Validates manage_token, shows error if invalid
@@ -292,7 +292,7 @@ src/
   - Auto-creates `brewer_token` record when beer added
   - Real-time updates when other volunteers add beers
 
-#### Task 4.2: Brewer Feedback URLs in Admin
+#### Task 4.2: Brewer Feedback URLs in Admin ✅
 - **What**: Display brewer feedback URLs in admin event detail
 - **Acceptance criteria**:
   - Each beer shows its feedback URL
