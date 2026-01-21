@@ -11,8 +11,10 @@
 
 	let selectedAdminId = $state('');
 	let copied = $state(false);
+	let copiedVoterLink = $state(false);
 	let copiedFeedbackId = $state<string | null>(null);
 	let beers = $state<BeerWithToken[]>(data.beers);
+	let testVoterUrl = $state('');
 
 	const manageUrl = $derived(`${$page.url.origin}/manage/${data.event.manage_token}`);
 	const resultsUrl = $derived(`${$page.url.origin}/results/${data.event.id}`);
@@ -77,6 +79,18 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
+	function generateTestVoterLink() {
+		const uuid = crypto.randomUUID();
+		testVoterUrl = `${$page.url.origin}/vote/${data.event.id}/${uuid}`;
+	}
+
+	async function copyVoterLink() {
+		if (!testVoterUrl) return;
+		await navigator.clipboard.writeText(testVoterUrl);
+		copiedVoterLink = true;
+		setTimeout(() => (copiedVoterLink = false), 2000);
+	}
+
 	async function copyFeedbackUrl(beerId: string, token: string) {
 		const url = `${$page.url.origin}/feedback/${token}`;
 		await navigator.clipboard.writeText(url);
@@ -125,6 +139,42 @@
 				{/if}
 			</button>
 		</div>
+	</div>
+
+	<!-- Test Voter Link -->
+	<div class="card">
+		<h2 class="text-lg font-semibold text-brown-900 mb-3">Test Voter Link</h2>
+		<p class="text-sm text-muted mb-3">Generate a one-time voter link to test the voting experience.</p>
+		{#if testVoterUrl}
+			<div class="flex gap-2 mb-3">
+				<input type="text" readonly value={testVoterUrl} class="input flex-1 text-sm" />
+				<button
+					type="button"
+					onclick={copyVoterLink}
+					class="btn-secondary flex items-center gap-1.5 text-sm"
+				>
+					{#if copiedVoterLink}
+						<Check class="w-4 h-4 text-green-600" />
+						<span class="text-green-600">Copied</span>
+					{:else}
+						<Files class="w-4 h-4" />
+						<span>Copy</span>
+					{/if}
+				</button>
+			</div>
+			<div class="flex gap-2">
+				<a href={testVoterUrl} target="_blank" rel="noopener noreferrer" class="btn-primary text-sm">
+					Open Voter Page
+				</a>
+				<button type="button" onclick={generateTestVoterLink} class="btn-ghost text-sm">
+					Generate New
+				</button>
+			</div>
+		{:else}
+			<button type="button" onclick={generateTestVoterLink} class="btn-primary">
+				Generate Test Link
+			</button>
+		{/if}
 	</div>
 
 	<!-- Results Control -->
