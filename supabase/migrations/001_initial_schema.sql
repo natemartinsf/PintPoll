@@ -379,6 +379,7 @@ GRANT SELECT, INSERT ON beers TO anon;              -- Voters read, tap voluntee
 GRANT SELECT, INSERT, UPDATE ON votes TO anon;      -- Voters create/update votes
 GRANT SELECT, INSERT, UPDATE ON feedback TO anon;   -- Voters create/update feedback
 GRANT SELECT ON brewer_tokens TO anon;              -- Feedback page validation
+GRANT SELECT ON brewer_tokens TO authenticated;     -- Admin event detail page
 
 -- Authenticated access (admins)
 GRANT SELECT, INSERT, UPDATE, DELETE ON events TO authenticated;

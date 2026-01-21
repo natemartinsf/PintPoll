@@ -5,11 +5,14 @@
 	import { Files, Check } from 'lucide-svelte';
 	import type { Beer } from '$lib/types';
 
+	type BeerWithToken = Beer & { brewer_tokens: { id: string } | null };
+
 	let { data, form } = $props();
 
 	let selectedAdminId = $state('');
 	let copied = $state(false);
-	let beers = $state<Beer[]>(data.beers);
+	let copiedFeedbackId = $state<string | null>(null);
+	let beers = $state<BeerWithToken[]>(data.beers);
 
 	const manageUrl = $derived(`${$page.url.origin}/manage/${data.event.manage_token}`);
 	const resultsUrl = $derived(`${$page.url.origin}/results/${data.event.id}`);
@@ -26,10 +29,21 @@
 					table: 'beers',
 					filter: `event_id=eq.${data.event.id}`
 				},
-				(payload) => {
+				async (payload) => {
 					const newBeer = payload.new as Beer;
 					if (!beers.some((b) => b.id === newBeer.id)) {
-						beers = [...beers, newBeer];
+						// Fetch the brewer_token for the new beer
+						const { data: tokenData } = await data.supabase
+							.from('brewer_tokens')
+							.select('id')
+							.eq('beer_id', newBeer.id)
+							.single();
+
+						const beerWithToken: BeerWithToken = {
+							...newBeer,
+							brewer_tokens: tokenData
+						};
+						beers = [...beers, beerWithToken];
 					}
 				}
 			)
@@ -61,6 +75,13 @@
 		await navigator.clipboard.writeText(text);
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
+	}
+
+	async function copyFeedbackUrl(beerId: string, token: string) {
+		const url = `${$page.url.origin}/feedback/${token}`;
+		await navigator.clipboard.writeText(url);
+		copiedFeedbackId = beerId;
+		setTimeout(() => (copiedFeedbackId = null), 2000);
 	}
 </script>
 
@@ -147,31 +168,55 @@
 		{:else}
 			<ul class="divide-y divide-brown-100">
 				{#each beers as beer (beer.id)}
-					<li class="py-3 flex items-center justify-between">
-						<div>
-							<span class="font-medium text-brown-900">{beer.name}</span>
-							<span class="text-muted ml-2">by {beer.brewer}</span>
-							{#if beer.style}
-								<span class="text-sm text-muted ml-2">({beer.style})</span>
-							{/if}
+					<li class="py-3">
+						<div class="flex items-center justify-between">
+							<div>
+								<span class="font-medium text-brown-900">{beer.name}</span>
+								<span class="text-muted ml-2">by {beer.brewer}</span>
+								{#if beer.style}
+									<span class="text-sm text-muted ml-2">({beer.style})</span>
+								{/if}
+							</div>
+							<form
+								method="POST"
+								action="?/deleteBeer"
+								use:enhance={() => {
+									if (!confirm(`Delete "${beer.name}"? This will also delete all votes and feedback for this beer.`)) {
+										return () => {};
+									}
+									return async ({ update }) => {
+										await update();
+									};
+								}}
+							>
+								<input type="hidden" name="beerId" value={beer.id} />
+								<button type="submit" class="btn-ghost text-red-600 hover:text-red-700 text-sm">
+									Delete
+								</button>
+							</form>
 						</div>
-						<form
-							method="POST"
-							action="?/deleteBeer"
-							use:enhance={() => {
-								if (!confirm(`Delete "${beer.name}"? This will also delete all votes and feedback for this beer.`)) {
-									return () => {};
-								}
-								return async ({ update }) => {
-									await update();
-								};
-							}}
-						>
-							<input type="hidden" name="beerId" value={beer.id} />
-							<button type="submit" class="btn-ghost text-red-600 hover:text-red-700 text-sm">
-								Delete
-							</button>
-						</form>
+						{#if beer.brewer_tokens?.id}
+							<div class="mt-2 flex items-center gap-2">
+								<span class="text-xs text-muted">Feedback URL:</span>
+								<code class="text-xs text-brown-600 bg-brown-50 px-1.5 py-0.5 rounded truncate max-w-xs">
+									/feedback/{beer.brewer_tokens.id}
+								</code>
+								<button
+									type="button"
+									onclick={() => copyFeedbackUrl(beer.id, beer.brewer_tokens!.id)}
+									class="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs text-brown-600 hover:text-brown-800 hover:bg-brown-100 transition-colors"
+									title={copiedFeedbackId === beer.id ? 'Copied!' : 'Copy feedback URL'}
+								>
+									{#if copiedFeedbackId === beer.id}
+										<Check class="w-3 h-3 text-green-600" />
+										<span class="text-green-600">Copied</span>
+									{:else}
+										<Files class="w-3 h-3" />
+										<span>Copy</span>
+									{/if}
+								</button>
+							</div>
+						{/if}
 					</li>
 				{/each}
 			</ul>

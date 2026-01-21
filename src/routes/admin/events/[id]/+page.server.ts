@@ -35,10 +35,10 @@ export const load: PageServerLoad = async ({ parent, locals, params }) => {
 		throw error(404, 'Event not found');
 	}
 
-	// Get beers for this event
+	// Get beers for this event with their brewer tokens
 	const { data: beers, error: beersError } = await locals.supabase
 		.from('beers')
-		.select('*')
+		.select('*, brewer_tokens(id)')
 		.eq('event_id', eventId)
 		.order('created_at', { ascending: true });
 
