@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 	const events = eventAdmins
 		.map(ea => ea.events as Event)
 		.filter(Boolean)
-		.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+		.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
 
 	return {
 		events
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 };
 
 export const actions: Actions = {
-	create: async ({ request, locals, parent }) => {
+	create: async ({ request, locals }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
 			return fail(403, { error: 'Not authorized' });

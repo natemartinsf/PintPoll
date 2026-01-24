@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		.eq('id', brewerToken)
 		.single();
 
-	if (tokenError || !tokenRecord) {
+	if (tokenError || !tokenRecord || !tokenRecord.beer_id) {
 		throw error(404, 'Invalid feedback link. Please check the URL and try again.');
 	}
 

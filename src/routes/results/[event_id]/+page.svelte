@@ -12,7 +12,7 @@
 	let { data } = $props();
 
 	// Track current reveal stage (synced from server data initially, then real-time updates)
-	let revealStage = $state(data.event.reveal_stage);
+	let revealStage = $state(data.event.reveal_stage ?? 0);
 
 	// Track which places have been "revealed" with animation
 	// This prevents re-animating when returning to page
@@ -127,8 +127,8 @@
 					filter: `id=eq.${data.event.id}`
 				},
 				(payload) => {
-					const updated = payload.new as { reveal_stage: number };
-					revealStage = updated.reveal_stage;
+					const updated = payload.new as { reveal_stage: number | null };
+					revealStage = updated.reveal_stage ?? 0;
 				}
 			)
 			.subscribe();

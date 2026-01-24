@@ -117,7 +117,7 @@
 											<span>{new Date(event.date).toLocaleDateString()}</span>
 										{/if}
 										<span>{event.max_points} points max</span>
-										{#if event.reveal_stage > 0}
+										{#if (event.reveal_stage ?? 0) > 0}
 											<span class="text-green-600">
 												{#if event.reveal_stage === 1}Ceremony started
 												{:else if event.reveal_stage === 2}3rd revealed

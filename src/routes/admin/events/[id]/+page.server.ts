@@ -61,6 +61,7 @@ export const load: PageServerLoad = async ({ parent, locals, params }) => {
 		} else if (voteData) {
 			// Aggregate votes by beer_id
 			for (const vote of voteData) {
+				if (!vote.beer_id || vote.points === null) continue;
 				if (!voteTotals[vote.beer_id]) {
 					voteTotals[vote.beer_id] = { totalPoints: 0, voterCount: 0 };
 				}
@@ -69,6 +70,7 @@ export const load: PageServerLoad = async ({ parent, locals, params }) => {
 			// Count distinct voters per beer
 			const votersByBeer: Record<string, Set<string>> = {};
 			for (const vote of voteData) {
+				if (!vote.beer_id || !vote.voter_id) continue;
 				if (!votersByBeer[vote.beer_id]) {
 					votersByBeer[vote.beer_id] = new Set();
 				}
@@ -159,14 +161,16 @@ export const actions: Actions = {
 			return fail(500, { action: 'advanceStage', error: 'Failed to get event' });
 		}
 
+		const currentStage = event.reveal_stage ?? 0;
+
 		// Don't advance past stage 4
-		if (event.reveal_stage >= 4) {
+		if (currentStage >= 4) {
 			return fail(400, { action: 'advanceStage', error: 'Ceremony already complete' });
 		}
 
 		const { error } = await locals.supabase
 			.from('events')
-			.update({ reveal_stage: event.reveal_stage + 1 })
+			.update({ reveal_stage: currentStage + 1 })
 			.eq('id', eventId);
 
 		if (error) {

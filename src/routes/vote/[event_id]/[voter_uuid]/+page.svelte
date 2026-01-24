@@ -36,7 +36,9 @@
 	$effect(() => {
 		const votesMap: Record<string, number> = {};
 		for (const vote of data.votes) {
-			votesMap[vote.beer_id] = vote.points;
+			if (vote.beer_id && vote.points !== null) {
+				votesMap[vote.beer_id] = vote.points;
+			}
 		}
 		votesByBeer = votesMap;
 	});
@@ -46,9 +48,10 @@
 		const feedbackMap: Record<string, { notes: string; shareWithBrewer: boolean }> = {};
 		const expandedMap: Record<string, boolean> = {};
 		for (const fb of data.feedback) {
+			if (!fb.beer_id) continue;
 			feedbackMap[fb.beer_id] = {
 				notes: fb.notes || '',
-				shareWithBrewer: fb.share_with_brewer
+				shareWithBrewer: fb.share_with_brewer ?? false
 			};
 			// Auto-expand if feedback exists
 			if (fb.notes || fb.share_with_brewer) {
@@ -67,7 +70,8 @@
 	// Calculate maxSelectable for a beer: current value + remaining points
 	function getMaxSelectable(beerId: string): number {
 		const currentValue = votesByBeer[beerId] ?? 0;
-		const remaining = data.event.max_points - totalUsed;
+		const maxPoints = data.event.max_points ?? 5;
+		const remaining = maxPoints - totalUsed;
 		return currentValue + remaining;
 	}
 
@@ -102,7 +106,7 @@
 
 				// Check error code for structured detection (P0002 = VOTE_LIMIT_EXCEEDED)
 				if (error.code === 'P0002') {
-					saveError = `You've used all ${data.event.max_points} points. Remove points from another beer first.`;
+					saveError = `You've used all ${data.event.max_points ?? 5} points. Remove points from another beer first.`;
 				} else {
 					saveError = 'Failed to save vote. Please try again.';
 				}
@@ -240,7 +244,7 @@
 		<div class="max-w-2xl mx-auto px-4 py-4">
 			<h1 class="text-xl font-bold text-brown-900">{data.event.name}</h1>
 			<p class="text-sm text-muted">
-				{totalUsed} of {data.event.max_points} points used
+				{totalUsed} of {data.event.max_points ?? 5} points used
 			</p>
 		</div>
 	</header>
@@ -270,7 +274,7 @@
 							{/if}
 						</div>
 						<PointPicker
-							max={data.event.max_points}
+							max={data.event.max_points ?? 5}
 							value={votesByBeer[beer.id] ?? 0}
 							maxSelectable={getMaxSelectable(beer.id)}
 							disabled={saving}

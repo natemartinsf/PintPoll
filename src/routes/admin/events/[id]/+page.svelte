@@ -14,7 +14,7 @@
 	let copied = $state(false);
 	let copiedVoterLink = $state(false);
 	let copiedFeedbackId = $state<string | null>(null);
-	let beers = $state<BeerWithToken[]>(data.beers);
+	let beers = $state<BeerWithToken[]>(data.beers as BeerWithToken[]);
 	let testVoterUrl = $state('');
 	let voteTotals = $state<Record<string, { totalPoints: number; voterCount: number }>>(data.voteTotals);
 	let isRefreshingVotes = $state(false);
@@ -49,6 +49,7 @@
 			const votersByBeer: Record<string, Set<string>> = {};
 
 			for (const vote of voteData || []) {
+				if (!vote.beer_id || vote.points === null || !vote.voter_id) continue;
 				if (!newTotals[vote.beer_id]) {
 					newTotals[vote.beer_id] = { totalPoints: 0, voterCount: 0 };
 				}
@@ -476,7 +477,7 @@
 				{/if}
 			</form>
 
-			{#if data.event.reveal_stage > 0}
+			{#if (data.event.reveal_stage ?? 0) > 0}
 				<form
 					method="POST"
 					action="?/resetStage"
