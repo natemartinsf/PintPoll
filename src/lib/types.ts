@@ -1,240 +1,39 @@
-// Database types matching Supabase schema
-// See: supabase/migrations/001_initial_schema.sql
+// Re-export generated types from Supabase
+// Run `npm run gen:types` after schema changes to regenerate
 
-export interface Database {
-	public: {
-		Tables: {
-			events: {
-				Row: Event;
-				Insert: EventInsert;
-				Update: EventUpdate;
-			};
-			voters: {
-				Row: Voter;
-				Insert: VoterInsert;
-				Update: VoterUpdate;
-			};
-			beers: {
-				Row: Beer;
-				Insert: BeerInsert;
-				Update: BeerUpdate;
-			};
-			votes: {
-				Row: Vote;
-				Insert: VoteInsert;
-				Update: VoteUpdate;
-			};
-			feedback: {
-				Row: Feedback;
-				Insert: FeedbackInsert;
-				Update: FeedbackUpdate;
-			};
-			brewer_tokens: {
-				Row: BrewerToken;
-				Insert: BrewerTokenInsert;
-				Update: BrewerTokenUpdate;
-			};
-			admins: {
-				Row: Admin;
-				Insert: AdminInsert;
-				Update: AdminUpdate;
-			};
-			event_admins: {
-				Row: EventAdmin;
-				Insert: EventAdminInsert;
-				Update: EventAdminUpdate;
-			};
-		};
-	};
-}
+export type { Database, Tables, TablesInsert, TablesUpdate } from './database.types';
 
-// Events
-export interface Event {
-	id: string;
-	name: string;
-	date: string | null;
-	max_points: number;
-	reveal_stage: number; // 0=hidden, 1=ceremony, 2=3rd, 3=2nd, 4=1st
-	manage_token: string;
-	created_at: string;
-}
+import type { Database } from './database.types';
 
-export interface EventInsert {
-	id?: string;
-	name: string;
-	date?: string | null;
-	max_points?: number;
-	reveal_stage?: number;
-	manage_token?: string;
-	created_at?: string;
-}
+// Convenient type aliases for Row types
+export type Event = Database['public']['Tables']['events']['Row'];
+export type EventInsert = Database['public']['Tables']['events']['Insert'];
+export type EventUpdate = Database['public']['Tables']['events']['Update'];
 
-export interface EventUpdate {
-	id?: string;
-	name?: string;
-	date?: string | null;
-	max_points?: number;
-	reveal_stage?: number;
-	manage_token?: string;
-	created_at?: string;
-}
+export type Voter = Database['public']['Tables']['voters']['Row'];
+export type VoterInsert = Database['public']['Tables']['voters']['Insert'];
+export type VoterUpdate = Database['public']['Tables']['voters']['Update'];
 
-// Voters
-export interface Voter {
-	id: string;
-	event_id: string;
-	created_at: string;
-}
+export type Beer = Database['public']['Tables']['beers']['Row'];
+export type BeerInsert = Database['public']['Tables']['beers']['Insert'];
+export type BeerUpdate = Database['public']['Tables']['beers']['Update'];
 
-export interface VoterInsert {
-	id: string; // Required - from QR code UUID
-	event_id: string;
-	created_at?: string;
-}
+export type Vote = Database['public']['Tables']['votes']['Row'];
+export type VoteInsert = Database['public']['Tables']['votes']['Insert'];
+export type VoteUpdate = Database['public']['Tables']['votes']['Update'];
 
-export interface VoterUpdate {
-	id?: string;
-	event_id?: string;
-	created_at?: string;
-}
+export type Feedback = Database['public']['Tables']['feedback']['Row'];
+export type FeedbackInsert = Database['public']['Tables']['feedback']['Insert'];
+export type FeedbackUpdate = Database['public']['Tables']['feedback']['Update'];
 
-// Beers
-export interface Beer {
-	id: string;
-	event_id: string;
-	name: string;
-	brewer: string;
-	style: string | null;
-	created_at: string;
-}
+export type BrewerToken = Database['public']['Tables']['brewer_tokens']['Row'];
+export type BrewerTokenInsert = Database['public']['Tables']['brewer_tokens']['Insert'];
+export type BrewerTokenUpdate = Database['public']['Tables']['brewer_tokens']['Update'];
 
-export interface BeerInsert {
-	id?: string;
-	event_id: string;
-	name: string;
-	brewer: string;
-	style?: string | null;
-	created_at?: string;
-}
+export type Admin = Database['public']['Tables']['admins']['Row'];
+export type AdminInsert = Database['public']['Tables']['admins']['Insert'];
+export type AdminUpdate = Database['public']['Tables']['admins']['Update'];
 
-export interface BeerUpdate {
-	id?: string;
-	event_id?: string;
-	name?: string;
-	brewer?: string;
-	style?: string | null;
-	created_at?: string;
-}
-
-// Votes
-export interface Vote {
-	id: string;
-	voter_id: string;
-	beer_id: string;
-	points: number;
-	updated_at: string;
-}
-
-export interface VoteInsert {
-	id?: string;
-	voter_id: string;
-	beer_id: string;
-	points: number;
-	updated_at?: string;
-}
-
-export interface VoteUpdate {
-	id?: string;
-	voter_id?: string;
-	beer_id?: string;
-	points?: number;
-	updated_at?: string;
-}
-
-// Feedback
-export interface Feedback {
-	id: string;
-	voter_id: string;
-	beer_id: string;
-	notes: string | null;
-	share_with_brewer: boolean;
-	created_at: string;
-}
-
-export interface FeedbackInsert {
-	id?: string;
-	voter_id: string;
-	beer_id: string;
-	notes?: string | null;
-	share_with_brewer?: boolean;
-	created_at?: string;
-}
-
-export interface FeedbackUpdate {
-	id?: string;
-	voter_id?: string;
-	beer_id?: string;
-	notes?: string | null;
-	share_with_brewer?: boolean;
-	created_at?: string;
-}
-
-// Brewer Tokens
-export interface BrewerToken {
-	id: string;
-	beer_id: string;
-	created_at: string;
-}
-
-export interface BrewerTokenInsert {
-	id?: string;
-	beer_id: string;
-	created_at?: string;
-}
-
-export interface BrewerTokenUpdate {
-	id?: string;
-	beer_id?: string;
-	created_at?: string;
-}
-
-// Admins
-export interface Admin {
-	id: string;
-	user_id: string;
-	email: string;
-	created_at: string;
-}
-
-export interface AdminInsert {
-	id?: string;
-	user_id: string;
-	email: string;
-	created_at?: string;
-}
-
-export interface AdminUpdate {
-	id?: string;
-	user_id?: string;
-	email?: string;
-	created_at?: string;
-}
-
-// Event Admins (junction table)
-export interface EventAdmin {
-	event_id: string;
-	admin_id: string;
-	created_at: string;
-}
-
-export interface EventAdminInsert {
-	event_id: string;
-	admin_id: string;
-	created_at?: string;
-}
-
-export interface EventAdminUpdate {
-	event_id?: string;
-	admin_id?: string;
-	created_at?: string;
-}
+export type EventAdmin = Database['public']['Tables']['event_admins']['Row'];
+export type EventAdminInsert = Database['public']['Tables']['event_admins']['Insert'];
+export type EventAdminUpdate = Database['public']['Tables']['event_admins']['Update'];
