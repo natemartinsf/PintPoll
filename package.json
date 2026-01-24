@@ -21,6 +21,7 @@
 		"@sveltejs/kit": "^2.49.1",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@tailwindcss/vite": "^4.1.18",
+		"@types/canvas-confetti": "^1.9.0",
 		"autoprefixer": "^10.4.23",
 		"postcss": "^8.5.6",
 		"svelte": "^5.45.6",
@@ -31,6 +32,7 @@
 	},
 	"dependencies": {
 		"@supabase/ssr": "^0.8.0",
+		"canvas-confetti": "^1.9.4",
 		"lucide-svelte": "^0.562.0"
 	}
 }
