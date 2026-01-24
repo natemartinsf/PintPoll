@@ -195,7 +195,9 @@
 			const qrDataUrls: string[] = [];
 			for (const voter of voters) {
 				const url = `https://auto-bean.vercel.app/vote/${data.event.id}/${voter.uuid}`;
-				const qr = new QRCodeStyling({
+
+				// Base QR code options
+				const qrOptions: ConstructorParameters<typeof QRCodeStyling>[0] = {
 					width: 200,
 					height: 200,
 					data: url,
@@ -214,7 +216,24 @@
 					backgroundOptions: {
 						color: '#ffffff'
 					}
-				});
+				};
+
+				// Add logo if event has one
+				if (logoUrl) {
+					qrOptions.image = logoUrl;
+					qrOptions.imageOptions = {
+						hideBackgroundDots: true,
+						imageSize: 0.4,
+						margin: 2,
+						crossOrigin: 'anonymous'
+					};
+					// Increase error correction to compensate for logo overlay
+					qrOptions.qrOptions = {
+						errorCorrectionLevel: 'H'
+					};
+				}
+
+				const qr = new QRCodeStyling(qrOptions);
 
 				const blob = await qr.getRawData('png');
 				if (blob && blob instanceof Blob) {
