@@ -104,31 +104,25 @@ Event logos are stored in Supabase Storage. Create the bucket and policies manua
 
 ### 2. Configure Storage Policies
 
-In the bucket settings, add these RLS policies:
+Click on the `event-logos` bucket, go to "Policies", and add these three policies:
 
-**Public Read (SELECT):**
-```sql
--- Policy name: "Public read access"
--- Target: SELECT
--- Check expression:
-true
-```
+**Policy 1 - Public Read:**
+- Policy name: `Public read access`
+- Allowed operation: **SELECT**
+- Target roles: (leave default - all public roles)
+- Policy definition: `true`
 
-**Authenticated Upload (INSERT):**
-```sql
--- Policy name: "Authenticated users can upload"
--- Target: INSERT
--- Check expression:
-(auth.role() = 'authenticated')
-```
+**Policy 2 - Authenticated Upload:**
+- Policy name: `Authenticated upload`
+- Allowed operation: **INSERT**
+- Target roles: `authenticated`
+- Policy definition: `true`
 
-**Authenticated Delete (DELETE):**
-```sql
--- Policy name: "Authenticated users can delete"
--- Target: DELETE
--- Check expression:
-(auth.role() = 'authenticated')
-```
+**Policy 3 - Authenticated Delete:**
+- Policy name: `Authenticated delete`
+- Allowed operation: **DELETE**
+- Target roles: `authenticated`
+- Policy definition: `true`
 
 Note: The admin check is handled at the application level (only admins can access the upload UI).
 
