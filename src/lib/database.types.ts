@@ -37,7 +37,7 @@ export type Database = {
       }
       beers: {
         Row: {
-          brewer: string
+          brewer: string | null
           created_at: string | null
           event_id: string | null
           id: string
@@ -45,7 +45,7 @@ export type Database = {
           style: string | null
         }
         Insert: {
-          brewer: string
+          brewer?: string | null
           created_at?: string | null
           event_id?: string | null
           id?: string
@@ -53,7 +53,7 @@ export type Database = {
           style?: string | null
         }
         Update: {
-          brewer?: string
+          brewer?: string | null
           created_at?: string | null
           event_id?: string | null
           id?: string

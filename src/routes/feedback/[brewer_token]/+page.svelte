@@ -106,9 +106,13 @@
 		<div class="max-w-2xl mx-auto px-4 py-4">
 			<h1 class="text-xl font-bold text-brown-900">{data.beer.name}</h1>
 			<p class="text-sm text-muted">
-				by {data.beer.brewer}
+				{#if data.beer.brewer}
+					by {data.beer.brewer}
+					{#if data.beer.style}
+						<span class="mx-1">·</span>
+					{/if}
+				{/if}
 				{#if data.beer.style}
-					<span class="mx-1">·</span>
 					{data.beer.style}
 				{/if}
 			</p>

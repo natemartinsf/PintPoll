@@ -107,7 +107,7 @@
 
 				<div>
 					<label for="brewer" class="block text-sm font-medium text-brown-700 mb-1">
-						Brewer <span class="text-red-500">*</span>
+						Brewer <span class="text-muted text-xs">(optional)</span>
 					</label>
 					<input
 						type="text"
@@ -115,7 +115,6 @@
 						name="brewer"
 						bind:value={brewer}
 						placeholder="John Smith"
-						required
 						class="input w-full"
 					/>
 				</div>
@@ -158,9 +157,13 @@
 						<li class="py-3">
 							<div class="font-medium text-brown-900">{beer.name}</div>
 							<div class="text-sm text-muted">
-								by {beer.brewer}
+								{#if beer.brewer}
+									by {beer.brewer}
+									{#if beer.style}
+										<span class="mx-1">·</span>
+									{/if}
+								{/if}
 								{#if beer.style}
-									<span class="mx-1">·</span>
 									{beer.style}
 								{/if}
 							</div>

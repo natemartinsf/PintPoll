@@ -50,15 +50,11 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString().trim();
-		const brewer = formData.get('brewer')?.toString().trim();
+		const brewer = formData.get('brewer')?.toString().trim() || null;
 		const style = formData.get('style')?.toString().trim() || null;
 
 		if (!name) {
 			return fail(400, { error: 'Beer name is required' });
-		}
-
-		if (!brewer) {
-			return fail(400, { error: 'Brewer name is required' });
 		}
 
 		// Insert beer (brewer_token auto-created by database trigger)

@@ -195,7 +195,9 @@
 								<div class="podium-medal">🥇</div>
 								<div class="podium-rank">1st Place{firstPlace.length > 1 ? ' (Tied)' : ''}</div>
 								<div class="podium-name">{beer.name}</div>
-								<div class="podium-brewer">by {beer.brewer}</div>
+								{#if beer.brewer}
+									<div class="podium-brewer">by {beer.brewer}</div>
+								{/if}
 								<div class="podium-stats">
 									<span class="podium-points">{beer.totalPoints} pts</span>
 									<span class="podium-votes">{beer.voterCount} voters</span>
@@ -214,7 +216,9 @@
 									<div class="podium-medal">🥈</div>
 									<div class="podium-rank">2nd Place{secondPlace.length > 1 ? ' (Tied)' : ''}</div>
 									<div class="podium-name">{beer.name}</div>
-									<div class="podium-brewer">by {beer.brewer}</div>
+									{#if beer.brewer}
+										<div class="podium-brewer">by {beer.brewer}</div>
+									{/if}
 									<div class="podium-stats">
 										<span class="podium-points">{beer.totalPoints} pts</span>
 										<span class="podium-votes">{beer.voterCount} voters</span>
@@ -238,7 +242,9 @@
 									<div class="podium-medal">🥉</div>
 									<div class="podium-rank">3rd Place{thirdPlace.length > 1 ? ' (Tied)' : ''}</div>
 									<div class="podium-name">{beer.name}</div>
-									<div class="podium-brewer">by {beer.brewer}</div>
+									{#if beer.brewer}
+										<div class="podium-brewer">by {beer.brewer}</div>
+									{/if}
 									<div class="podium-stats">
 										<span class="podium-points">{beer.totalPoints} pts</span>
 										<span class="podium-votes">{beer.voterCount} voters</span>
@@ -268,7 +274,9 @@
 										</div>
 										<div class="flex-1">
 											<div class="font-medium text-brown-900">{beer.name}</div>
-											<div class="text-sm text-muted">by {beer.brewer}</div>
+											{#if beer.brewer}
+												<div class="text-sm text-muted">by {beer.brewer}</div>
+											{/if}
 										</div>
 										<div class="text-right">
 											<div class="font-semibold text-amber-700">{beer.totalPoints} pts</div>

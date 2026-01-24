@@ -549,7 +549,9 @@
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
 									<span class="font-medium text-brown-900">{beer.name}</span>
-									<span class="text-muted">by {beer.brewer}</span>
+									{#if beer.brewer}
+										<span class="text-muted">by {beer.brewer}</span>
+									{/if}
 									{#if beer.style}
 										<span class="text-sm text-muted">({beer.style})</span>
 									{/if}

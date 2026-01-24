@@ -267,9 +267,13 @@
 					<div class="card">
 						<div class="font-medium text-brown-900 text-lg">{beer.name}</div>
 						<div class="text-sm text-muted mb-3">
-							by {beer.brewer}
+							{#if beer.brewer}
+								by {beer.brewer}
+								{#if beer.style}
+									<span class="mx-1">·</span>
+								{/if}
+							{/if}
 							{#if beer.style}
-								<span class="mx-1">·</span>
 								{beer.style}
 							{/if}
 						</div>
