@@ -232,8 +232,7 @@
 			.map(
 				(voter, i) => `
 			<div class="card">
-				<img src="${qrDataUrls[i]}" alt="QR Code ${voter.number}" />
-				<div class="card-number">#${voter.number}</div>
+				<img src="${qrDataUrls[i]}" alt="QR Code" />
 				<div class="instruction">Scan to vote</div>
 				<div class="url">auto-bean.vercel.app/vote/${eventId}/${voter.uuid}</div>
 			</div>
@@ -283,13 +282,6 @@
 		.card img {
 			width: 120px;
 			height: 120px;
-		}
-
-		.card-number {
-			font-size: 14px;
-			font-weight: bold;
-			color: #4a3728;
-			margin-top: 8px;
 		}
 
 		.instruction {
