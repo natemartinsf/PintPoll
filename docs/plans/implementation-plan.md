@@ -396,7 +396,7 @@ src/
 
 ### Phase 7: QR Code Generation
 
-#### Task 7.1: QR Generation UI
+#### Task 7.1: QR Generation UI ✅
 - **What**: Admin can generate voter QR codes for an event
 - **Acceptance criteria**:
   - "Generate QR Codes" button on event detail page
@@ -406,7 +406,7 @@ src/
   - 12 cards per page, 3x4 grid, dashed borders
   - Each card: QR code, card number, scan instructions
 
-#### Task 7.2: Customize QR Card Design (Future)
+#### Task 7.2: Customize QR Card Design (Future) ✅
 - **What**: Enhance QR code cards with more customization
 - **Ideas**:
   - Add event name/logo to cards
