@@ -384,7 +384,9 @@ GRANT SELECT ON brewer_tokens TO authenticated;     -- Admin event detail page
 
 -- Authenticated access (admins)
 GRANT SELECT, INSERT, UPDATE, DELETE ON events TO authenticated;
-GRANT SELECT, INSERT, DELETE ON beers TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON beers TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON votes TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON feedback TO authenticated;
 GRANT SELECT ON admins TO authenticated;
 GRANT INSERT ON admins TO authenticated;
 GRANT DELETE ON admins TO authenticated;
