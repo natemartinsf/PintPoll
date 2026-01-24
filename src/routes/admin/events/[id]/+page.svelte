@@ -448,6 +448,31 @@
 		{/if}
 	</div>
 
+	<!-- Blind Tasting Mode -->
+	<div class="card">
+		<h2 class="text-lg font-semibold text-brown-900 mb-3">Blind Tasting Mode</h2>
+		<p class="text-sm text-muted mb-4">
+			When enabled, brewer names are hidden from voters during voting. Brewers are still revealed on the results page.
+		</p>
+		<form method="POST" action="?/toggleBlindTasting" use:enhance>
+			<label class="flex items-center gap-3 cursor-pointer">
+				<input
+					type="checkbox"
+					name="enabled"
+					checked={data.event.blind_tasting ?? false}
+					onchange={(e) => e.currentTarget.form?.requestSubmit()}
+					class="w-5 h-5 rounded border-brown-300 text-amber-600 focus:ring-amber-500"
+				/>
+				<span class="text-brown-900">
+					{data.event.blind_tasting ? 'Blind tasting enabled' : 'Blind tasting disabled'}
+				</span>
+			</label>
+		</form>
+		{#if form?.error && form?.action === 'toggleBlindTasting'}
+			<p class="text-red-600 text-sm mt-3">{form.error}</p>
+		{/if}
+	</div>
+
 	<!-- Results Ceremony Control -->
 	<div class="card">
 		<h2 class="text-lg font-semibold text-brown-900 mb-3">Results Ceremony</h2>

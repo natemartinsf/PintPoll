@@ -120,6 +120,52 @@ export const load: PageServerLoad = async ({ parent, locals, params }) => {
 };
 
 export const actions: Actions = {
+	toggleBlindTasting: async ({ request, locals, params }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) {
+			return fail(403, { action: 'toggleBlindTasting', error: 'Not authorized' });
+		}
+
+		const eventId = params.id;
+
+		// Verify user is admin and assigned to this event
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin) {
+			return fail(403, { action: 'toggleBlindTasting', error: 'Not authorized' });
+		}
+
+		const { data: assignment } = await locals.supabase
+			.from('event_admins')
+			.select('event_id')
+			.eq('event_id', eventId)
+			.eq('admin_id', currentAdmin.id)
+			.single();
+
+		if (!assignment) {
+			return fail(403, { action: 'toggleBlindTasting', error: 'You are not assigned to this event' });
+		}
+
+		const formData = await request.formData();
+		const enabled = formData.get('enabled') === 'on';
+
+		const { error } = await locals.supabase
+			.from('events')
+			.update({ blind_tasting: enabled })
+			.eq('id', eventId);
+
+		if (error) {
+			console.error('Error toggling blind tasting:', error);
+			return fail(500, { action: 'toggleBlindTasting', error: 'Failed to update blind tasting setting' });
+		}
+
+		return { success: true };
+	},
+
 	advanceStage: async ({ locals, params }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
