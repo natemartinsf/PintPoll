@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Beer, Vote } from '$lib/types';
+	import type { Beer, Vote, Feedback } from '$lib/types';
 	import PointPicker from '$lib/components/PointPicker.svelte';
 
 	let { data } = $props();
@@ -11,11 +11,20 @@
 	// Votes keyed by beer_id
 	let votesByBeer = $state<Record<string, number>>({});
 
+	// Feedback keyed by beer_id
+	let feedbackByBeer = $state<Record<string, { notes: string; shareWithBrewer: boolean }>>({});
+
+	// Track which beer cards have expanded feedback forms
+	let expandedFeedback = $state<Record<string, boolean>>({});
+
 	// Error state for failed saves
 	let saveError = $state<string | null>(null);
 
 	// Track if a save is in progress (prevents race conditions from rapid clicks)
 	let saving = $state(false);
+
+	// Track feedback saves separately (don't block votes)
+	let savingFeedback = $state<Record<string, boolean>>({});
 
 	// Sync from server data (runs once on mount, and if data.beers changes)
 	$effect(() => {
@@ -29,6 +38,24 @@
 			votesMap[vote.beer_id] = vote.points;
 		}
 		votesByBeer = votesMap;
+	});
+
+	// Initialize feedback from server data
+	$effect(() => {
+		const feedbackMap: Record<string, { notes: string; shareWithBrewer: boolean }> = {};
+		const expandedMap: Record<string, boolean> = {};
+		for (const fb of data.feedback) {
+			feedbackMap[fb.beer_id] = {
+				notes: fb.notes || '',
+				shareWithBrewer: fb.share_with_brewer
+			};
+			// Auto-expand if feedback exists
+			if (fb.notes || fb.share_with_brewer) {
+				expandedMap[fb.beer_id] = true;
+			}
+		}
+		feedbackByBeer = feedbackMap;
+		expandedFeedback = expandedMap;
 	});
 
 	// Calculate total points used
@@ -83,6 +110,62 @@
 		} finally {
 			saving = false;
 		}
+	}
+
+	// Toggle feedback form visibility
+	function toggleFeedback(beerId: string) {
+		expandedFeedback[beerId] = !expandedFeedback[beerId];
+	}
+
+	// Get feedback for a beer (with defaults)
+	function getFeedback(beerId: string): { notes: string; shareWithBrewer: boolean } {
+		return feedbackByBeer[beerId] || { notes: '', shareWithBrewer: false };
+	}
+
+	// Save feedback to database
+	async function saveFeedback(beerId: string) {
+		if (savingFeedback[beerId]) return;
+
+		const fb = getFeedback(beerId);
+		savingFeedback[beerId] = true;
+
+		try {
+			const { error } = await data.supabase.from('feedback').upsert(
+				{
+					voter_id: data.voter.id,
+					beer_id: beerId,
+					notes: fb.notes || null,
+					share_with_brewer: fb.shareWithBrewer
+				},
+				{
+					onConflict: 'voter_id,beer_id'
+				}
+			);
+
+			if (error) {
+				console.error('Error saving feedback:', error);
+				saveError = 'Failed to save feedback. Please try again.';
+			}
+		} finally {
+			savingFeedback[beerId] = false;
+		}
+	}
+
+	// Handle notes change (update local state, save on blur)
+	function handleNotesChange(beerId: string, value: string) {
+		if (!feedbackByBeer[beerId]) {
+			feedbackByBeer[beerId] = { notes: '', shareWithBrewer: false };
+		}
+		feedbackByBeer[beerId].notes = value;
+	}
+
+	// Handle checkbox change (update local state and save immediately)
+	async function handleShareChange(beerId: string, checked: boolean) {
+		if (!feedbackByBeer[beerId]) {
+			feedbackByBeer[beerId] = { notes: '', shareWithBrewer: false };
+		}
+		feedbackByBeer[beerId].shareWithBrewer = checked;
+		await saveFeedback(beerId);
 	}
 
 	// Real-time subscription for beer updates
@@ -174,6 +257,42 @@
 							disabled={saving}
 							onchange={(points) => handleVoteChange(beer.id, points)}
 						/>
+
+						<!-- Feedback toggle -->
+						<button
+							type="button"
+							class="mt-3 text-sm text-amber-700 hover:text-amber-800 flex items-center gap-1"
+							onclick={() => toggleFeedback(beer.id)}
+						>
+							{#if expandedFeedback[beer.id]}
+								<span class="text-xs">▼</span> Hide feedback
+							{:else}
+								<span class="text-xs">▶</span> Add feedback
+							{/if}
+						</button>
+
+						<!-- Expanded feedback form -->
+						{#if expandedFeedback[beer.id]}
+							<div class="mt-3 pt-3 border-t border-brown-100">
+								<textarea
+									class="w-full px-3 py-2 text-sm border border-brown-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+									rows="2"
+									placeholder="What did you think of this beer?"
+									value={getFeedback(beer.id).notes}
+									oninput={(e) => handleNotesChange(beer.id, e.currentTarget.value)}
+									onblur={() => saveFeedback(beer.id)}
+								></textarea>
+								<label class="flex items-center gap-2 mt-2 text-sm text-brown-700 cursor-pointer">
+									<input
+										type="checkbox"
+										class="w-4 h-4 rounded border-brown-300 text-amber-600 focus:ring-amber-500"
+										checked={getFeedback(beer.id).shareWithBrewer}
+										onchange={(e) => handleShareChange(beer.id, e.currentTarget.checked)}
+									/>
+									Share with brewer
+								</label>
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>

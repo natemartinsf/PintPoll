@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import type { Event, Beer, Voter, Vote } from '$lib/types';
+import type { Event, Beer, Voter, Vote, Feedback } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const eventId = params.event_id;
@@ -82,10 +82,21 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		console.error('Error fetching votes:', votesError);
 	}
 
+	// Get existing feedback for this voter
+	const { data: feedback, error: feedbackError } = await locals.supabase
+		.from('feedback')
+		.select('*')
+		.eq('voter_id', voter!.id);
+
+	if (feedbackError) {
+		console.error('Error fetching feedback:', feedbackError);
+	}
+
 	return {
 		event: event as Event,
 		voter: voter as Voter,
 		beers: (beers || []) as Beer[],
-		votes: (votes || []) as Vote[]
+		votes: (votes || []) as Vote[],
+		feedback: (feedback || []) as Feedback[]
 	};
 };
