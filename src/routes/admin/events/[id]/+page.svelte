@@ -235,7 +235,7 @@
 				<img src="${qrDataUrls[i]}" alt="QR Code ${voter.number}" />
 				<div class="card-number">#${voter.number}</div>
 				<div class="instruction">Scan to vote</div>
-				<div class="url">/vote/${eventId}/${voter.uuid}</div>
+				<div class="url">auto-bean.vercel.app/vote/${eventId}/${voter.uuid}</div>
 			</div>
 		`
 			)
