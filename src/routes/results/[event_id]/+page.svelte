@@ -162,6 +162,13 @@
 		<!-- Stage 1+: Ceremony has started -->
 	{:else}
 		<header class="py-8 text-center border-b border-brown-200">
+			{#if data.event.logo_url}
+				<img
+					src={data.event.logo_url}
+					alt="{data.event.name} logo"
+					class="h-16 md:h-20 w-auto object-contain mx-auto mb-4"
+				/>
+			{/if}
 			<h1 class="text-3xl md:text-5xl font-bold text-brown-900 mb-2">{data.event.name}</h1>
 			<p class="text-lg text-muted">People's Choice Awards</p>
 		</header>
