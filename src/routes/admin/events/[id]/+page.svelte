@@ -177,29 +177,66 @@
 		{/if}
 	</div>
 
-	<!-- Results Control -->
+	<!-- Results Ceremony Control -->
 	<div class="card">
-		<h2 class="text-lg font-semibold text-brown-900 mb-3">Results</h2>
-		<div class="flex items-center justify-between">
-			<div>
-				<p class="text-sm text-muted">
-					{#if data.event.results_visible}
-						Results are currently <span class="text-green-600 font-medium">visible</span> to everyone.
-					{:else}
-						Results are currently <span class="text-brown-700 font-medium">hidden</span>.
-					{/if}
-				</p>
-			</div>
-			<form method="POST" action="?/toggleResults" use:enhance>
-				<input type="hidden" name="results_visible" value={data.event.results_visible ? 'false' : 'true'} />
-				<button type="submit" class={data.event.results_visible ? 'btn-secondary' : 'btn-primary'}>
-					{data.event.results_visible ? 'Hide Results' : 'Reveal Results'}
-				</button>
-			</form>
+		<h2 class="text-lg font-semibold text-brown-900 mb-3">Results Ceremony</h2>
+
+		<!-- Current Stage Status -->
+		<div class="mb-4">
+			<p class="text-sm text-muted">
+				Current status:
+				{#if data.event.reveal_stage === 0}
+					<span class="text-brown-700 font-medium">Hidden</span> — Voting active
+				{:else if data.event.reveal_stage === 1}
+					<span class="text-amber-600 font-medium">Ceremony Started</span> — Voters redirected to results
+				{:else if data.event.reveal_stage === 2}
+					<span class="text-amber-600 font-medium">3rd Place Revealed</span>
+				{:else if data.event.reveal_stage === 3}
+					<span class="text-amber-600 font-medium">2nd Place Revealed</span>
+				{:else if data.event.reveal_stage === 4}
+					<span class="text-green-600 font-medium">1st Place Revealed</span> — Ceremony complete
+				{/if}
+			</p>
 		</div>
-		{#if form?.error && form?.action === 'toggleResults'}
+
+		<!-- Stage Control Buttons -->
+		<div class="flex items-center gap-3">
+			<form method="POST" action="?/advanceStage" use:enhance>
+				{#if data.event.reveal_stage === 0}
+					<button type="submit" class="btn-primary">Start Ceremony</button>
+				{:else if data.event.reveal_stage === 1}
+					<button type="submit" class="btn-primary">Reveal 3rd Place</button>
+				{:else if data.event.reveal_stage === 2}
+					<button type="submit" class="btn-primary">Reveal 2nd Place</button>
+				{:else if data.event.reveal_stage === 3}
+					<button type="submit" class="btn-primary">Reveal 1st Place</button>
+				{:else}
+					<button type="submit" disabled class="btn-primary opacity-50 cursor-not-allowed">Ceremony Complete</button>
+				{/if}
+			</form>
+
+			{#if data.event.reveal_stage > 0}
+				<form
+					method="POST"
+					action="?/resetStage"
+					use:enhance={() => {
+						if (!confirm('Reset the ceremony? This will hide results and allow voting again.')) {
+							return () => {};
+						}
+						return async ({ update }) => {
+							await update();
+						};
+					}}
+				>
+					<button type="submit" class="btn-secondary">Reset</button>
+				</form>
+			{/if}
+		</div>
+
+		{#if form?.error && (form?.action === 'advanceStage' || form?.action === 'resetStage')}
 			<p class="text-red-600 text-sm mt-3">{form.error}</p>
 		{/if}
+
 		<div class="mt-4 pt-4 border-t border-brown-100">
 			<a href={resultsUrl} target="_blank" rel="noopener noreferrer" class="text-sm">
 				View Results Page &rarr;

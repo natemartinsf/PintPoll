@@ -17,8 +17,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw error(404, 'Event not found');
 	}
 
-	// If results are visible, redirect to results page
-	if (event.results_visible) {
+	// If ceremony has started (reveal_stage > 0), redirect to results page
+	if (event.reveal_stage > 0) {
 		throw redirect(303, `/results/${eventId}`);
 	}
 

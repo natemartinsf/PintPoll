@@ -81,10 +81,10 @@ export const load: PageServerLoad = async ({ parent, locals, params }) => {
 };
 
 export const actions: Actions = {
-	toggleResults: async ({ request, locals, params }) => {
+	advanceStage: async ({ locals, params }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
-			return fail(403, { action: 'toggleResults', error: 'Not authorized' });
+			return fail(403, { action: 'advanceStage', error: 'Not authorized' });
 		}
 
 		const eventId = params.id;
@@ -97,7 +97,7 @@ export const actions: Actions = {
 			.single();
 
 		if (!currentAdmin) {
-			return fail(403, { action: 'toggleResults', error: 'Not authorized' });
+			return fail(403, { action: 'advanceStage', error: 'Not authorized' });
 		}
 
 		const { data: assignment } = await locals.supabase
@@ -108,20 +108,76 @@ export const actions: Actions = {
 			.single();
 
 		if (!assignment) {
-			return fail(403, { action: 'toggleResults', error: 'You are not assigned to this event' });
+			return fail(403, { action: 'advanceStage', error: 'You are not assigned to this event' });
 		}
 
-		const formData = await request.formData();
-		const resultsVisible = formData.get('results_visible') === 'true';
+		// Get current stage
+		const { data: event, error: eventError } = await locals.supabase
+			.from('events')
+			.select('reveal_stage')
+			.eq('id', eventId)
+			.single();
+
+		if (eventError || !event) {
+			return fail(500, { action: 'advanceStage', error: 'Failed to get event' });
+		}
+
+		// Don't advance past stage 4
+		if (event.reveal_stage >= 4) {
+			return fail(400, { action: 'advanceStage', error: 'Ceremony already complete' });
+		}
 
 		const { error } = await locals.supabase
 			.from('events')
-			.update({ results_visible: resultsVisible })
+			.update({ reveal_stage: event.reveal_stage + 1 })
 			.eq('id', eventId);
 
 		if (error) {
-			console.error('Error updating results visibility:', error);
-			return fail(500, { action: 'toggleResults', error: 'Failed to update results visibility' });
+			console.error('Error advancing reveal stage:', error);
+			return fail(500, { action: 'advanceStage', error: 'Failed to advance reveal stage' });
+		}
+
+		return { success: true };
+	},
+
+	resetStage: async ({ locals, params }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) {
+			return fail(403, { action: 'resetStage', error: 'Not authorized' });
+		}
+
+		const eventId = params.id;
+
+		// Verify user is admin and assigned to this event
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin) {
+			return fail(403, { action: 'resetStage', error: 'Not authorized' });
+		}
+
+		const { data: assignment } = await locals.supabase
+			.from('event_admins')
+			.select('event_id')
+			.eq('event_id', eventId)
+			.eq('admin_id', currentAdmin.id)
+			.single();
+
+		if (!assignment) {
+			return fail(403, { action: 'resetStage', error: 'You are not assigned to this event' });
+		}
+
+		const { error } = await locals.supabase
+			.from('events')
+			.update({ reveal_stage: 0 })
+			.eq('id', eventId);
+
+		if (error) {
+			console.error('Error resetting reveal stage:', error);
+			return fail(500, { action: 'resetStage', error: 'Failed to reset reveal stage' });
 		}
 
 		return { success: true };
