@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { Files, Check, RefreshCw, QrCode } from 'lucide-svelte';
+	import { Files, Check, RefreshCw, QrCode, Upload, Trash2 } from 'lucide-svelte';
 	import type { Beer } from '$lib/types';
 	import QRCodeStyling from 'qr-code-styling';
 
@@ -36,6 +36,14 @@
 	let lastRefreshed = $state<Date>(new Date());
 	let qrCount = $state(100);
 	let isGeneratingQR = $state(false);
+	let isUploadingLogo = $state(false);
+	let logoUrl = $state<string | null>(null);
+	let logoFileInput: HTMLInputElement;
+
+	// Sync logo URL with props
+	$effect(() => {
+		logoUrl = data.event.logo_url;
+	});
 
 	const manageUrl = $derived(`${$page.url.origin}/manage/${data.event.manage_token}`);
 	const resultsUrl = $derived(`${$page.url.origin}/results/${data.event.id}`);
@@ -451,6 +459,113 @@
 			<p class="text-sm text-amber-600 mt-2">
 				Generating {qrCount} codes may take a moment.
 			</p>
+		{/if}
+	</div>
+
+	<!-- Event Logo -->
+	<div class="card">
+		<h2 class="text-lg font-semibold text-brown-900 mb-3">Event Logo</h2>
+		<p class="text-sm text-muted mb-4">
+			Upload a logo to display on the voter and results pages. PNG, JPG, or SVG, max 500KB.
+		</p>
+
+		{#if logoUrl}
+			<!-- Logo preview and remove -->
+			<div class="flex items-start gap-4">
+				<img
+					src={logoUrl}
+					alt="Event logo"
+					class="h-20 w-auto object-contain rounded border border-brown-200"
+				/>
+				<div class="flex flex-col gap-2">
+					<form
+						method="POST"
+						action="?/removeLogo"
+						use:enhance={() => {
+							if (!confirm('Remove the event logo?')) {
+								return () => {};
+							}
+							logoUrl = null;
+							return async ({ result }) => {
+								if (result.type === 'failure') {
+									// Revert on error
+									logoUrl = data.event.logo_url;
+								}
+							};
+						}}
+					>
+						<button type="submit" class="btn-ghost text-red-600 hover:text-red-700 text-sm flex items-center gap-1.5">
+							<Trash2 class="w-4 h-4" />
+							Remove
+						</button>
+					</form>
+					<button
+						type="button"
+						onclick={() => logoFileInput.click()}
+						class="btn-ghost text-sm flex items-center gap-1.5"
+					>
+						<Upload class="w-4 h-4" />
+						Replace
+					</button>
+				</div>
+			</div>
+		{:else}
+			<!-- Upload button -->
+			<button
+				type="button"
+				onclick={() => logoFileInput.click()}
+				disabled={isUploadingLogo}
+				class="btn-secondary flex items-center gap-2"
+			>
+				{#if isUploadingLogo}
+					<RefreshCw class="w-4 h-4 animate-spin" />
+					<span>Uploading...</span>
+				{:else}
+					<Upload class="w-4 h-4" />
+					<span>Upload Logo</span>
+				{/if}
+			</button>
+		{/if}
+
+		<!-- Hidden file input and form -->
+		<form
+			method="POST"
+			action="?/uploadLogo"
+			enctype="multipart/form-data"
+			use:enhance={() => {
+				isUploadingLogo = true;
+				return async ({ result, update }) => {
+					isUploadingLogo = false;
+					if (result.type === 'success') {
+						await update();
+					}
+				};
+			}}
+			class="hidden"
+			id="logo-upload-form"
+		>
+			<input
+				type="file"
+				name="logo"
+				accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+				bind:this={logoFileInput}
+				onchange={(e) => {
+					const file = e.currentTarget.files?.[0];
+					if (file) {
+						// Validate size client-side
+						if (file.size > 500 * 1024) {
+							alert('File too large. Maximum size is 500KB.');
+							e.currentTarget.value = '';
+							return;
+						}
+						e.currentTarget.form?.requestSubmit();
+					}
+				}}
+			/>
+		</form>
+
+		{#if form?.error && (form?.action === 'uploadLogo' || form?.action === 'removeLogo')}
+			<p class="text-red-600 text-sm mt-3">{form.error}</p>
 		{/if}
 	</div>
 

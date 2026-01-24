@@ -391,6 +391,167 @@ export const actions: Actions = {
 		return { adminAdded: true };
 	},
 
+	uploadLogo: async ({ request, locals, params }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) {
+			return fail(403, { action: 'uploadLogo', error: 'Not authorized' });
+		}
+
+		const eventId = params.id;
+
+		// Verify user is admin and assigned to this event
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin) {
+			return fail(403, { action: 'uploadLogo', error: 'Not authorized' });
+		}
+
+		const { data: assignment } = await locals.supabase
+			.from('event_admins')
+			.select('event_id')
+			.eq('event_id', eventId)
+			.eq('admin_id', currentAdmin.id)
+			.single();
+
+		if (!assignment) {
+			return fail(403, { action: 'uploadLogo', error: 'You are not assigned to this event' });
+		}
+
+		const formData = await request.formData();
+		const file = formData.get('logo') as File | null;
+
+		if (!file || file.size === 0) {
+			return fail(400, { action: 'uploadLogo', error: 'No file provided' });
+		}
+
+		// Validate file type
+		const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+		if (!allowedTypes.includes(file.type)) {
+			return fail(400, { action: 'uploadLogo', error: 'Invalid file type. Use PNG, JPG, or SVG.' });
+		}
+
+		// Validate file size (500KB limit)
+		const maxSize = 500 * 1024;
+		if (file.size > maxSize) {
+			return fail(400, { action: 'uploadLogo', error: 'File too large. Maximum size is 500KB.' });
+		}
+
+		// Generate a unique filename
+		const ext = file.name.split('.').pop() || 'png';
+		const filename = `${eventId}-${Date.now()}.${ext}`;
+
+		// Upload to Supabase Storage
+		const { error: uploadError } = await locals.supabase.storage
+			.from('event-logos')
+			.upload(filename, file, {
+				cacheControl: '3600',
+				upsert: false
+			});
+
+		if (uploadError) {
+			console.error('Error uploading logo:', uploadError);
+			return fail(500, { action: 'uploadLogo', error: 'Failed to upload logo' });
+		}
+
+		// Get public URL
+		const { data: urlData } = locals.supabase.storage.from('event-logos').getPublicUrl(filename);
+
+		// Delete old logo if exists
+		const { data: event } = await locals.supabase
+			.from('events')
+			.select('logo_url')
+			.eq('id', eventId)
+			.single();
+
+		if (event?.logo_url) {
+			// Extract filename from old URL
+			const oldFilename = event.logo_url.split('/').pop();
+			if (oldFilename) {
+				await locals.supabase.storage.from('event-logos').remove([oldFilename]);
+			}
+		}
+
+		// Update event with new logo URL
+		const { error: updateError } = await locals.supabase
+			.from('events')
+			.update({ logo_url: urlData.publicUrl })
+			.eq('id', eventId);
+
+		if (updateError) {
+			console.error('Error updating event logo_url:', updateError);
+			// Try to clean up the uploaded file
+			await locals.supabase.storage.from('event-logos').remove([filename]);
+			return fail(500, { action: 'uploadLogo', error: 'Failed to save logo URL' });
+		}
+
+		return { logoUploaded: true };
+	},
+
+	removeLogo: async ({ locals, params }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) {
+			return fail(403, { action: 'removeLogo', error: 'Not authorized' });
+		}
+
+		const eventId = params.id;
+
+		// Verify user is admin and assigned to this event
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin) {
+			return fail(403, { action: 'removeLogo', error: 'Not authorized' });
+		}
+
+		const { data: assignment } = await locals.supabase
+			.from('event_admins')
+			.select('event_id')
+			.eq('event_id', eventId)
+			.eq('admin_id', currentAdmin.id)
+			.single();
+
+		if (!assignment) {
+			return fail(403, { action: 'removeLogo', error: 'You are not assigned to this event' });
+		}
+
+		// Get current logo URL
+		const { data: event } = await locals.supabase
+			.from('events')
+			.select('logo_url')
+			.eq('id', eventId)
+			.single();
+
+		if (!event?.logo_url) {
+			return fail(400, { action: 'removeLogo', error: 'No logo to remove' });
+		}
+
+		// Extract filename from URL
+		const filename = event.logo_url.split('/').pop();
+		if (filename) {
+			await locals.supabase.storage.from('event-logos').remove([filename]);
+		}
+
+		// Clear logo_url in database
+		const { error: updateError } = await locals.supabase
+			.from('events')
+			.update({ logo_url: null })
+			.eq('id', eventId);
+
+		if (updateError) {
+			console.error('Error removing logo_url:', updateError);
+			return fail(500, { action: 'removeLogo', error: 'Failed to remove logo' });
+		}
+
+		return { logoRemoved: true };
+	},
+
 	removeEventAdmin: async ({ request, locals, params }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
