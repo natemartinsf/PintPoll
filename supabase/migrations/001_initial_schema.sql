@@ -28,7 +28,7 @@ CREATE TABLE events (
   name TEXT NOT NULL,
   date DATE,
   max_points INTEGER DEFAULT 5,
-  results_visible BOOLEAN DEFAULT FALSE,
+  reveal_stage INTEGER DEFAULT 0,  -- 0=hidden, 1=ceremony, 2=3rd, 3=2nd, 4=1st
   manage_token UUID UNIQUE DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

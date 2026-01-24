@@ -54,7 +54,7 @@ export interface Event {
 	name: string;
 	date: string | null;
 	max_points: number;
-	results_visible: boolean;
+	reveal_stage: number; // 0=hidden, 1=ceremony, 2=3rd, 3=2nd, 4=1st
 	manage_token: string;
 	created_at: string;
 }
@@ -64,7 +64,7 @@ export interface EventInsert {
 	name: string;
 	date?: string | null;
 	max_points?: number;
-	results_visible?: boolean;
+	reveal_stage?: number;
 	manage_token?: string;
 	created_at?: string;
 }
@@ -74,7 +74,7 @@ export interface EventUpdate {
 	name?: string;
 	date?: string | null;
 	max_points?: number;
-	results_visible?: boolean;
+	reveal_stage?: number;
 	manage_token?: string;
 	created_at?: string;
 }
