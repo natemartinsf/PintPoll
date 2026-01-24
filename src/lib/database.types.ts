@@ -131,27 +131,33 @@ export type Database = {
       }
       events: {
         Row: {
+          blind_tasting: boolean | null
           created_at: string | null
           date: string | null
           id: string
+          logo_url: string | null
           manage_token: string | null
           max_points: number | null
           name: string
           reveal_stage: number | null
         }
         Insert: {
+          blind_tasting?: boolean | null
           created_at?: string | null
           date?: string | null
           id?: string
+          logo_url?: string | null
           manage_token?: string | null
           max_points?: number | null
           name: string
           reveal_stage?: number | null
         }
         Update: {
+          blind_tasting?: boolean | null
           created_at?: string | null
           date?: string | null
           id?: string
+          logo_url?: string | null
           manage_token?: string | null
           max_points?: number | null
           name?: string
