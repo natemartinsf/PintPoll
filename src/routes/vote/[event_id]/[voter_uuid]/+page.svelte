@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import type { Beer, Vote, Feedback } from '$lib/types';
 	import PointPicker from '$lib/components/PointPicker.svelte';
 
@@ -164,9 +165,10 @@
 		await saveFeedback(beerId);
 	}
 
-	// Real-time subscription for beer updates
+	// Real-time subscriptions
 	onMount(() => {
-		const channel = data.supabase
+		// Subscribe to beer changes
+		const beersChannel = data.supabase
 			.channel('voter-beers')
 			.on(
 				'postgres_changes',
@@ -202,8 +204,29 @@
 			)
 			.subscribe();
 
+		// Subscribe to event changes (for ceremony start)
+		const eventChannel = data.supabase
+			.channel('voter-event')
+			.on(
+				'postgres_changes',
+				{
+					event: 'UPDATE',
+					schema: 'public',
+					table: 'events',
+					filter: `id=eq.${data.event.id}`
+				},
+				(payload) => {
+					const updated = payload.new as { reveal_stage: number };
+					if (updated.reveal_stage > 0) {
+						goto(`/results/${data.event.id}`);
+					}
+				}
+			)
+			.subscribe();
+
 		return () => {
-			data.supabase.removeChannel(channel);
+			data.supabase.removeChannel(beersChannel);
+			data.supabase.removeChannel(eventChannel);
 		};
 	});
 </script>
