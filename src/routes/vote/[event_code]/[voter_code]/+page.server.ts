@@ -1,10 +1,18 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Event, Beer, Voter, Vote, Feedback } from '$lib/types';
+import { resolveShortCode } from '$lib/short-codes';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	const eventId = params.event_id;
-	const voterUuid = params.voter_uuid;
+	const eventId = await resolveShortCode(locals.supabase, params.event_code, 'event');
+	if (!eventId) {
+		throw error(404, 'Event not found');
+	}
+
+	const voterUuid = await resolveShortCode(locals.supabase, params.voter_code, 'voter');
+	if (!voterUuid) {
+		throw error(404, 'Invalid voter link');
+	}
 
 	// Validate event exists
 	const { data: event, error: eventError } = await locals.supabase
@@ -19,7 +27,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	// If ceremony has started (reveal_stage > 0), redirect to results page
 	if ((event.reveal_stage ?? 0) > 0) {
-		throw redirect(303, `/results/${eventId}`);
+		throw redirect(303, `/results/${params.event_code}`);
 	}
 
 	// Get or create voter record
@@ -97,6 +105,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		voter: voter as Voter,
 		beers: (beers || []) as Beer[],
 		votes: (votes || []) as Vote[],
-		feedback: (feedback || []) as Feedback[]
+		feedback: (feedback || []) as Feedback[],
+		eventCode: params.event_code
 	};
 };

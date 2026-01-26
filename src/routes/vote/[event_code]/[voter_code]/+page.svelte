@@ -241,7 +241,7 @@
 				(payload) => {
 					const updated = payload.new as { reveal_stage: number };
 					if (updated.reveal_stage > 0) {
-						goto(`/results/${data.event.id}`);
+						goto(`/results/${data.eventCode}`);
 					}
 				}
 			)
