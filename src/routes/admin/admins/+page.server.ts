@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 };
 
 export const actions: Actions = {
-	add: async ({ request, locals, url }) => {
+	add: async ({ request, locals }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
 			return fail(403, { error: 'Not authorized' });
@@ -76,9 +76,10 @@ export const actions: Actions = {
 			userId = existingUser.id;
 		} else {
 			// Invite new user
-			const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-				redirectTo: `${url.origin}/auth/callback?next=set-password`
-			});
+			// Note: redirectTo is NOT passed here. The invite email template
+			// handles routing directly via token_hash to /auth/callback.
+			// See Supabase Dashboard → Auth → Email Templates → "Invite user".
+			const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
 
 			if (inviteError) {
 				console.error('Error inviting user:', inviteError);
