@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { Files, Check, RefreshCw, QrCode, Upload, Trash2 } from 'lucide-svelte';
 	import type { Beer } from '$lib/types';
+	import { generateShortCode } from '$lib/short-codes';
 	import QRCodeStyling from 'qr-code-styling';
 
 	type BeerWithToken = Beer & { brewer_tokens: { id: string } | null };
@@ -209,16 +210,34 @@
 		isGeneratingQR = true;
 
 		try {
-			// Generate voter UUIDs and URLs
+			// Generate voter UUIDs and short codes
 			const voters = Array.from({ length: qrCount }, (_, i) => ({
 				uuid: crypto.randomUUID(),
+				code: generateShortCode(),
 				number: i + 1
 			}));
+
+			// Batch-insert short codes into the database
+			const shortCodeRows = voters.map((v) => ({
+				code: v.code,
+				target_type: 'voter' as const,
+				target_id: v.uuid
+			}));
+
+			const { error: insertError } = await data.supabase
+				.from('short_codes')
+				.insert(shortCodeRows);
+
+			if (insertError) {
+				console.error('Error inserting voter short codes:', insertError);
+				alert('Failed to save voter codes. Please try again.');
+				return;
+			}
 
 			// Generate QR code data URLs
 			const qrDataUrls: string[] = [];
 			for (const voter of voters) {
-				const url = `https://auto-bean.vercel.app/vote/${data.event.id}/${voter.uuid}`;
+				const url = `https://auto-bean.vercel.app/vote/${data.eventCode}/${voter.code}`;
 
 				// Base QR code options
 				const qrOptions: ConstructorParameters<typeof QRCodeStyling>[0] = {
@@ -267,7 +286,7 @@
 			}
 
 			// Build printable HTML
-			const html = buildPrintableHtml(voters, qrDataUrls, data.event.name, data.event.id);
+			const html = buildPrintableHtml(voters, qrDataUrls, data.event.name, data.eventCode);
 
 			// Open in new tab
 			const newWindow = window.open('', '_blank');
@@ -290,10 +309,10 @@
 	}
 
 	function buildPrintableHtml(
-		voters: { uuid: string; number: number }[],
+		voters: { code: string; number: number }[],
 		qrDataUrls: string[],
 		eventName: string,
-		eventId: string
+		eventCode: string
 	): string {
 		const cards = voters
 			.map(
@@ -301,7 +320,7 @@
 			<div class="card">
 				<img src="${qrDataUrls[i]}" alt="QR Code" />
 				<div class="instruction">Scan to vote</div>
-				<div class="url">auto-bean.vercel.app/vote/${eventId}/${voter.uuid}</div>
+				<div class="url">auto-bean.vercel.app/vote/${eventCode}/${voter.code}</div>
 			</div>
 		`
 			)
