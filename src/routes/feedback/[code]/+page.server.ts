@@ -1,18 +1,12 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Beer, Feedback } from '$lib/types';
+import { resolveShortCode } from '$lib/short-codes';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	const brewerToken = params.brewer_token;
+	const beerId = await resolveShortCode(locals.supabase, params.code, 'brewer');
 
-	// Validate brewer_token and get beer_id
-	const { data: tokenRecord, error: tokenError } = await locals.supabase
-		.from('brewer_tokens')
-		.select('beer_id')
-		.eq('id', brewerToken)
-		.single();
-
-	if (tokenError || !tokenRecord || !tokenRecord.beer_id) {
+	if (!beerId) {
 		throw error(404, 'Invalid feedback link. Please check the URL and try again.');
 	}
 
@@ -20,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const { data: beer, error: beerError } = await locals.supabase
 		.from('beers')
 		.select('*')
-		.eq('id', tokenRecord.beer_id)
+		.eq('id', beerId)
 		.single();
 
 	if (beerError || !beer) {
