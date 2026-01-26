@@ -1,6 +1,7 @@
 import { fail, redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Event, Beer, Admin } from '$lib/types';
+import { generateShortCode, resolveShortCode } from '$lib/short-codes';
 
 export const load: PageServerLoad = async ({ parent, locals, params }) => {
 	const parentData = await parent();
@@ -9,7 +10,10 @@ export const load: PageServerLoad = async ({ parent, locals, params }) => {
 		throw redirect(303, '/admin');
 	}
 
-	const eventId = params.id;
+	const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+	if (!eventId) {
+		throw error(404, 'Event not found');
+	}
 	const currentAdminId = parentData.admin.id;
 
 	// Verify admin is assigned to this event
@@ -109,13 +113,39 @@ export const load: PageServerLoad = async ({ parent, locals, params }) => {
 		.map((ea) => ea.admins as { id: string; email: string })
 		.filter(Boolean);
 
+	// Load short codes for URL display
+	const { data: manageCodeRow } = await locals.supabase
+		.from('short_codes')
+		.select('code')
+		.eq('target_type', 'manage')
+		.eq('target_id', eventId)
+		.single();
+
+	const brewerCodeMap: Record<string, string> = {};
+	if (beerIds.length > 0) {
+		const { data: brewerCodes } = await locals.supabase
+			.from('short_codes')
+			.select('code, target_id')
+			.eq('target_type', 'brewer')
+			.in('target_id', beerIds);
+
+		if (brewerCodes) {
+			for (const c of brewerCodes) {
+				brewerCodeMap[c.target_id] = c.code;
+			}
+		}
+	}
+
 	return {
 		event: event as Event,
 		beers: (beers || []) as Beer[],
 		assignedAdmins,
 		allAdmins: (allAdmins || []) as Pick<Admin, 'id' | 'email'>[],
 		currentAdminId,
-		voteTotals
+		voteTotals,
+		eventCode: params.code,
+		manageCode: manageCodeRow?.code ?? null,
+		brewerCodeMap
 	};
 };
 
@@ -126,7 +156,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'toggleBlindTasting', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -172,7 +203,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'advanceStage', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -233,7 +265,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'resetStage', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -276,7 +309,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'deleteBeer', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -335,7 +369,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'addEventAdmin', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -397,7 +432,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'uploadLogo', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -497,7 +533,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'removeLogo', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -558,7 +595,8 @@ export const actions: Actions = {
 			return fail(403, { action: 'removeEventAdmin', error: 'Not authorized' });
 		}
 
-		const eventId = params.id;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
 
 		// Verify user is admin and assigned to this event
 		const { data: currentAdmin } = await locals.supabase
@@ -619,5 +657,50 @@ export const actions: Actions = {
 		}
 
 		return { adminRemoved: true };
+	},
+
+	generateTestVoter: async ({ locals, params }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) {
+			return fail(403, { action: 'generateTestVoter', error: 'Not authorized' });
+		}
+
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'event');
+		if (!eventId) throw error(404, 'Event not found');
+
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin) {
+			return fail(403, { action: 'generateTestVoter', error: 'Not authorized' });
+		}
+
+		const { data: assignment } = await locals.supabase
+			.from('event_admins')
+			.select('event_id')
+			.eq('event_id', eventId)
+			.eq('admin_id', currentAdmin.id)
+			.single();
+
+		if (!assignment) {
+			return fail(403, { action: 'generateTestVoter', error: 'You are not assigned to this event' });
+		}
+
+		const voterUuid = crypto.randomUUID();
+		const voterCode = generateShortCode();
+
+		const { error: codeError } = await locals.supabase
+			.from('short_codes')
+			.insert({ code: voterCode, target_type: 'voter', target_id: voterUuid });
+
+		if (codeError) {
+			console.error('Error creating test voter short code:', codeError);
+			return fail(500, { action: 'generateTestVoter', error: 'Failed to generate test voter' });
+		}
+
+		return { testVoterCode: voterCode };
 	}
 };

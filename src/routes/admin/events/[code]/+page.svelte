@@ -19,10 +19,15 @@
 	let voteTotals = $state<Record<string, { totalPoints: number; voterCount: number }>>({});
 	let isRefreshingVotes = $state(false);
 	let blindTasting = $state(false);
+	let brewerCodeMap = $state<Record<string, string>>({});
 
 	// Sync blind tasting state with props (only on initial load or navigation)
 	$effect(() => {
 		blindTasting = data.event.blind_tasting ?? false;
+	});
+
+	$effect(() => {
+		brewerCodeMap = { ...data.brewerCodeMap };
 	});
 
 	// Sync state with props when data changes (e.g., after form submissions or navigation)
@@ -45,8 +50,8 @@
 		logoUrl = data.event.logo_url;
 	});
 
-	const manageUrl = $derived(`${$page.url.origin}/manage/${data.event.manage_token}`);
-	const resultsUrl = $derived(`${$page.url.origin}/results/${data.event.id}`);
+	const manageUrl = $derived(data.manageCode ? `${$page.url.origin}/manage/${data.manageCode}` : '');
+	const resultsUrl = $derived(`${$page.url.origin}/results/${data.eventCode}`);
 
 	async function refreshVoteTotals() {
 		isRefreshingVotes = true;
@@ -137,6 +142,18 @@
 							brewer_tokens: tokenData
 						};
 						beers = [...beers, beerWithToken];
+
+						// Fetch brewer short code for the new beer
+						const { data: codeData } = await data.supabase
+							.from('short_codes')
+							.select('code')
+							.eq('target_type', 'brewer')
+							.eq('target_id', newBeer.id)
+							.single();
+
+						if (codeData) {
+							brewerCodeMap = { ...brewerCodeMap, [newBeer.id]: codeData.code };
+						}
 					}
 				}
 			)
@@ -171,11 +188,6 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
-	function generateTestVoterLink() {
-		const uuid = crypto.randomUUID();
-		testVoterUrl = `${$page.url.origin}/vote/${data.event.id}/${uuid}`;
-	}
-
 	async function copyVoterLink() {
 		if (!testVoterUrl) return;
 		await navigator.clipboard.writeText(testVoterUrl);
@@ -183,8 +195,10 @@
 		setTimeout(() => (copiedVoterLink = false), 2000);
 	}
 
-	async function copyFeedbackUrl(beerId: string, token: string) {
-		const url = `${$page.url.origin}/feedback/${token}`;
+	async function copyFeedbackUrl(beerId: string) {
+		const code = brewerCodeMap[beerId];
+		if (!code) return;
+		const url = `${$page.url.origin}/feedback/${code}`;
 		await navigator.clipboard.writeText(url);
 		copiedFeedbackId = beerId;
 		setTimeout(() => (copiedFeedbackId = null), 2000);
@@ -440,14 +454,38 @@
 				<a href={testVoterUrl} target="_blank" rel="noopener noreferrer" class="btn-primary text-sm">
 					Open Voter Page
 				</a>
-				<button type="button" onclick={generateTestVoterLink} class="btn-ghost text-sm">
-					Generate New
-				</button>
+				<form
+					method="POST"
+					action="?/generateTestVoter"
+					use:enhance={() => {
+						return async ({ result }) => {
+							if (result.type === 'success' && result.data?.testVoterCode) {
+								testVoterUrl = `${$page.url.origin}/vote/${data.eventCode}/${result.data.testVoterCode}`;
+							}
+						};
+					}}
+				>
+					<button type="submit" class="btn-ghost text-sm">
+						Generate New
+					</button>
+				</form>
 			</div>
 		{:else}
-			<button type="button" onclick={generateTestVoterLink} class="btn-primary">
-				Generate Test Link
-			</button>
+			<form
+				method="POST"
+				action="?/generateTestVoter"
+				use:enhance={() => {
+					return async ({ result }) => {
+						if (result.type === 'success' && result.data?.testVoterCode) {
+							testVoterUrl = `${$page.url.origin}/vote/${data.eventCode}/${result.data.testVoterCode}`;
+						}
+					};
+				}}
+			>
+				<button type="submit" class="btn-primary">
+					Generate Test Link
+				</button>
+			</form>
 		{/if}
 	</div>
 
@@ -753,10 +791,10 @@
 								</div>
 							</div>
 							<div class="flex items-center gap-1">
-								{#if beer.brewer_tokens?.id}
+								{#if brewerCodeMap[beer.id]}
 									<button
 										type="button"
-										onclick={() => copyFeedbackUrl(beer.id, beer.brewer_tokens!.id)}
+										onclick={() => copyFeedbackUrl(beer.id)}
 										class="flex items-center gap-1 px-2 py-1 rounded text-xs text-brown-600 hover:text-brown-800 hover:bg-brown-100 transition-colors"
 										title={copiedFeedbackId === beer.id ? 'Copied!' : 'Copy feedback URL'}
 									>
