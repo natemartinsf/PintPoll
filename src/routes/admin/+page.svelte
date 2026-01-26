@@ -96,38 +96,36 @@
 	</div>
 
 	<!-- Event List -->
-	<div class="card">
+	<div>
 		<h2 class="text-lg font-semibold text-brown-900 mb-4">Your Events</h2>
 		{#if data.error}
 			<p class="text-red-600">Failed to load events: {data.error}</p>
 		{:else if data.events.length === 0}
-			<p class="text-muted">No events yet. Create your first event above.</p>
+			<div class="card">
+				<p class="text-muted">No events yet. Create your first event above.</p>
+			</div>
 		{:else}
-			<ul class="divide-y divide-brown-100">
+			<div class="space-y-3">
 				{#each data.events as event}
-					<li class="py-4 flex items-center justify-between">
-						<a href="/admin/events/{event.id}" class="flex-1 no-underline group">
-							<div class="flex items-start justify-between">
-								<div>
-									<h3 class="font-medium text-brown-900 group-hover:text-amber-700">
-										{event.name}
-									</h3>
-									<div class="text-sm text-muted mt-1 space-x-3">
-										{#if event.date}
-											<span>{new Date(event.date).toLocaleDateString()}</span>
+					<div class="card-interactive flex items-center justify-between">
+						<a href="/admin/events/{event.id}" class="flex-1 no-underline">
+							<h3 class="font-medium text-brown-900">
+								{event.name}
+							</h3>
+							<div class="text-sm text-muted mt-1 space-x-3">
+								{#if event.date}
+									<span>{new Date(event.date).toLocaleDateString()}</span>
+								{/if}
+								<span>{event.max_points} points max</span>
+								{#if (event.reveal_stage ?? 0) > 0}
+									<span class="text-green-600">
+										{#if event.reveal_stage === 1}Ceremony started
+										{:else if event.reveal_stage === 2}3rd revealed
+										{:else if event.reveal_stage === 3}2nd revealed
+										{:else if event.reveal_stage === 4}Results revealed
 										{/if}
-										<span>{event.max_points} points max</span>
-										{#if (event.reveal_stage ?? 0) > 0}
-											<span class="text-green-600">
-												{#if event.reveal_stage === 1}Ceremony started
-												{:else if event.reveal_stage === 2}3rd revealed
-												{:else if event.reveal_stage === 3}2nd revealed
-												{:else if event.reveal_stage === 4}Results revealed
-												{/if}
-											</span>
-										{/if}
-									</div>
-								</div>
+									</span>
+								{/if}
 							</div>
 						</a>
 						<form
@@ -147,9 +145,9 @@
 								Delete
 							</button>
 						</form>
-					</li>
+					</div>
 				{/each}
-			</ul>
+			</div>
 		{/if}
 	</div>
 </div>
