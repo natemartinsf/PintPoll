@@ -1,15 +1,20 @@
 import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Event, Beer } from '$lib/types';
+import { resolveShortCode, generateShortCode } from '$lib/short-codes';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	const manageToken = params.manage_token;
+	const eventId = await resolveShortCode(locals.supabase, params.code, 'manage');
 
-	// Validate manage_token and get event
+	if (!eventId) {
+		throw error(404, 'Invalid manage link. Please check the URL and try again.');
+	}
+
+	// Get event
 	const { data: event, error: eventError } = await locals.supabase
 		.from('events')
 		.select('*')
-		.eq('manage_token', manageToken)
+		.eq('id', eventId)
 		.single();
 
 	if (eventError || !event) {
@@ -35,16 +40,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	addBeer: async ({ request, locals, params }) => {
-		const manageToken = params.manage_token;
+		const eventId = await resolveShortCode(locals.supabase, params.code, 'manage');
 
-		// Validate manage_token and get event
-		const { data: event, error: eventError } = await locals.supabase
-			.from('events')
-			.select('id')
-			.eq('manage_token', manageToken)
-			.single();
-
-		if (eventError || !event) {
+		if (!eventId) {
 			return fail(403, { error: 'Invalid manage link' });
 		}
 
@@ -58,16 +56,32 @@ export const actions: Actions = {
 		}
 
 		// Insert beer (brewer_token auto-created by database trigger)
-		const { error: insertError } = await locals.supabase.from('beers').insert({
-			event_id: event.id,
-			name,
-			brewer,
-			style
-		});
+		const { data: newBeer, error: insertError } = await locals.supabase
+			.from('beers')
+			.insert({
+				event_id: eventId,
+				name,
+				brewer,
+				style
+			})
+			.select('id')
+			.single();
 
-		if (insertError) {
+		if (insertError || !newBeer) {
 			console.error('Error adding beer:', insertError);
 			return fail(500, { error: 'Failed to add beer' });
+		}
+
+		// Create brewer short code for the new beer
+		const brewerCode = generateShortCode();
+		const { error: codeError } = await locals.supabase.from('short_codes').insert({
+			code: brewerCode,
+			target_type: 'brewer',
+			target_id: newBeer.id
+		});
+
+		if (codeError) {
+			console.error('Error creating brewer short code:', codeError);
 		}
 
 		return { success: true };
