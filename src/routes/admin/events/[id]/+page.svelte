@@ -64,6 +64,10 @@
 				.in('beer_id', beerIds);
 
 			if (error) {
+				// Ignore AbortError - happens during navigation or hydration, polling will retry
+				if (error.message?.includes('AbortError') || error.message?.includes('aborted')) {
+					return;
+				}
 				console.error('Error fetching vote totals:', error);
 				return;
 			}
@@ -92,6 +96,12 @@
 
 			voteTotals = newTotals;
 			lastRefreshed = new Date();
+		} catch (err) {
+			// Catch AbortError thrown as exception
+			if (err instanceof Error && (err.name === 'AbortError' || err.message?.includes('aborted'))) {
+				return;
+			}
+			console.error('Error refreshing vote totals:', err);
 		} finally {
 			isRefreshingVotes = false;
 		}

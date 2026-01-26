@@ -28,7 +28,7 @@
 
 	// Group beers by score tier for podium reveal (handles ties)
 	// We reveal by "podium position" (3rd, 2nd, 1st) not literal rank numbers
-	const scoreTiers = $derived(() => {
+	const scoreTiers = $derived.by(() => {
 		// Get unique scores in descending order
 		const uniqueScores = [...new Set(data.rankedBeers.map((b: RankedBeer) => b.totalPoints))].sort(
 			(a, b) => b - a
@@ -43,11 +43,12 @@
 	});
 
 	// Get podium tiers (top 3 positions for staged reveal)
-	const firstPlace = $derived(scoreTiers().find((t) => t.position === 1)?.beers || []);
-	const secondPlace = $derived(scoreTiers().find((t) => t.position === 2)?.beers || []);
-	const thirdPlace = $derived(scoreTiers().find((t) => t.position === 3)?.beers || []);
+	const firstPlace = $derived(scoreTiers.find((t) => t.position === 1)?.beers || []);
+	const secondPlace = $derived(scoreTiers.find((t) => t.position === 2)?.beers || []);
+	const thirdPlace = $derived(scoreTiers.find((t) => t.position === 3)?.beers || []);
+
 	const restOfRankings = $derived(
-		scoreTiers()
+		scoreTiers
 			.filter((t) => t.position > 3)
 			.flatMap((t) => t.beers)
 	);
@@ -271,7 +272,7 @@
 					<div class="mt-12">
 						<h2 class="text-xl font-semibold text-brown-800 mb-4 text-center">Full Rankings</h2>
 						<div class="space-y-3">
-							{#each scoreTiers().filter((t) => t.position > 3) as tier (tier.position)}
+							{#each scoreTiers.filter((t) => t.position > 3) as tier (tier.position)}
 								{#each tier.beers as beer (beer.id)}
 									<div class="card flex items-center gap-4">
 										<div

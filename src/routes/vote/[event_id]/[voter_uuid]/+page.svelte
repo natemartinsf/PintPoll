@@ -163,6 +163,10 @@
 			);
 
 			if (error) {
+				// Ignore AbortError - feedback will be saved on next interaction
+				if (error.message?.includes('AbortError') || error.message?.includes('aborted')) {
+					return;
+				}
 				console.error('Error saving feedback:', error);
 				saveError = 'Failed to save feedback. Please try again.';
 			}
