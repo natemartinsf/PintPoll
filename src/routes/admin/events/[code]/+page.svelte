@@ -237,7 +237,7 @@
 			// Generate QR code data URLs
 			const qrDataUrls: string[] = [];
 			for (const voter of voters) {
-				const url = `https://auto-bean.vercel.app/vote/${data.eventCode}/${voter.code}`;
+				const url = `https://pintpoll.com/vote/${data.eventCode}/${voter.code}`;
 
 				// Base QR code options
 				const qrOptions: ConstructorParameters<typeof QRCodeStyling>[0] = {
@@ -320,7 +320,7 @@
 			<div class="card">
 				<img src="${qrDataUrls[i]}" alt="QR Code" />
 				<div class="instruction">Scan to vote</div>
-				<div class="url">auto-bean.vercel.app/vote/${eventCode}/${voter.code}</div>
+				<div class="url">pintpoll.com/vote/${eventCode}/${voter.code}</div>
 			</div>
 		`
 			)
