@@ -5,7 +5,7 @@ import type { Admin } from '$lib/types';
 export const load: PageServerLoad = async ({ parent, locals }) => {
 	const parentData = await parent();
 
-	if (!parentData.isAdmin) {
+	if (!parentData.isAdmin || !parentData.isSuper) {
 		throw redirect(303, '/admin');
 	}
 
@@ -31,14 +31,14 @@ export const actions: Actions = {
 			return fail(403, { error: 'Not authorized' });
 		}
 
-		// Verify user is admin
+		// Verify user is super admin
 		const { data: currentAdmin } = await locals.supabase
 			.from('admins')
-			.select('id')
+			.select('id, is_super')
 			.eq('user_id', user.id)
 			.single();
 
-		if (!currentAdmin) {
+		if (!currentAdmin?.is_super) {
 			return fail(403, { error: 'Not authorized' });
 		}
 
@@ -111,14 +111,14 @@ export const actions: Actions = {
 			return fail(403, { error: 'Not authorized' });
 		}
 
-		// Verify user is admin and get their admin id
+		// Verify user is super admin and get their admin id
 		const { data: currentAdmin } = await locals.supabase
 			.from('admins')
-			.select('id')
+			.select('id, is_super')
 			.eq('user_id', user.id)
 			.single();
 
-		if (!currentAdmin) {
+		if (!currentAdmin?.is_super) {
 			return fail(403, { error: 'Not authorized' });
 		}
 

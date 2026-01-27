@@ -22,9 +22,11 @@
 					<a href="/admin" class="text-lg font-bold text-brown-900 no-underline hover:text-brown-700">
 						Admin
 					</a>
-					<a href="/admin/admins" class="text-sm text-brown-600 no-underline hover:text-brown-900">
-						Manage Admins
-					</a>
+					{#if data.isSuper}
+						<a href="/admin/admins" class="text-sm text-brown-600 no-underline hover:text-brown-900">
+							Manage Admins
+						</a>
+					{/if}
 				</nav>
 				<div class="flex items-center gap-4">
 					<span class="text-sm text-muted">{data.admin?.email}</span>

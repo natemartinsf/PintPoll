@@ -4,6 +4,7 @@ import type { LayoutServerLoad } from './$types';
 interface AdminInfo {
 	id: string;
 	email: string;
+	is_super: boolean;
 }
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -16,7 +17,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// Check if user is in the admins table
 	const { data: admin, error } = await locals.supabase
 		.from('admins')
-		.select('id, email')
+		.select('id, email, is_super')
 		.eq('user_id', user.id)
 		.single();
 
@@ -25,7 +26,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			session,
 			user,
 			admin: null as AdminInfo | null,
-			isAdmin: false as const
+			isAdmin: false as const,
+			isSuper: false
 		};
 	}
 
@@ -33,6 +35,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		session,
 		user,
 		admin: admin as AdminInfo,
-		isAdmin: true as const
+		isAdmin: true as const,
+		isSuper: admin.is_super
 	};
 };
