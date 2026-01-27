@@ -17,11 +17,21 @@ A simple voting app for homebrew competition finals parties. Attendees scan a QR
 3. Add beers as they go on tap (or give tap volunteers a management link)
 4. Hit "Reveal Results" for the awards ceremony
 
+## Features
+
+- **Blind Tasting Mode** - Per-event toggle to hide brewer names during voting (revealed on results page)
+- **Event Logos** - Upload per-event logos, displayed on voter page, results page, and embedded in QR codes
+- **Short URL Codes** - All public URLs use 8-character codes for cleaner links and simpler QR patterns
+- **Admin Invite Flow** - Invite new admins by email, forgot password support
+- **Real-time Results** - Vote totals update live on the admin dashboard
+- **Brewer Feedback** - Attendees can leave notes for brewers (opt-in per event)
+
 ## Tech Stack
 
 - **Frontend:** SvelteKit + Tailwind CSS on Vercel
 - **Backend:** Supabase (PostgreSQL + real-time)
-- **Auth:** UUID-based URLs for voters, Supabase email/password for admin
+- **Auth:** Short-code URLs for voters, Supabase email/password for admin
+- **Domain:** [pintpoll.com](https://pintpoll.com)
 
 ## Getting Started
 
@@ -44,11 +54,15 @@ npm run dev
 1. Go to [supabase.com](https://supabase.com) and create a new project
 2. Wait for the project to initialize
 
-### 2. Run the Migration
+### 2. Migrations
 
-1. Open the Supabase SQL Editor (Database → SQL Editor)
-2. Copy the contents of `supabase/migrations/001_initial_schema.sql`
-3. Run the query
+Migrations are applied automatically via GitHub Actions when changes are pushed. For a fresh local setup, migrations run in order from `supabase/migrations/`. The schema includes:
+
+- events, beers, voters, votes
+- feedback (for brewer notes)
+- brewer_tokens (magic URLs for brewers)
+- admins, event_admins, admin_invites
+- url_codes (short 8-character codes for all public URLs)
 
 ### 3. Enable Email/Password Auth
 
@@ -73,7 +87,7 @@ After this, you can add more admins through the admin UI.
 
 ## Generating QR Codes
 
-QR codes are generated from the admin interface. Select an event, click "Generate QR Codes", enter a count, and download the printable HTML sheet.
+QR codes are generated from the admin interface. Select an event, click "Generate QR Codes", enter a count, and download the printable HTML sheet. QR codes embed event logos for visual recognition.
 
 ## TypeScript Types
 
@@ -130,3 +144,4 @@ Note: The admin check is handled at the application level (only admins can acces
 
 - `project-spec.md` - Original project specification
 - `docs/plans/implementation-plan.md` - Implementation plan and design decisions
+- `docs/plans/short-url-codes.md` - Short URL code architecture and implementation
