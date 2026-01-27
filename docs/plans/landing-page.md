@@ -12,7 +12,7 @@ Add a public landing page at `/` that introduces PintPoll and lets prospective o
 - **Super admin role**: A boolean `is_super` column on `admins`. Only super admins can add/remove admins and view access requests. The "Manage Admins" nav link is hidden for regular admins, and the page itself is gated server-side. Regular admins can only manage their assigned events.
 - **Email notification via Resend**: When an access request is submitted, the SvelteKit server action sends a notification email to a configured address (env var). Uses Resend's REST API — one `fetch()` call, no Supabase Edge Functions or webhooks needed. Supabase's built-in email is auth-only and can't send arbitrary transactional emails.
 - **Form fields**: name, email, club_name, message (optional free-text).
-- **Ko-fi link**: Placeholder URL in footer, easy to swap later.
+- **Ko-fi link**: `ko-fi.com/natemartinsf`. Subtle placement — footer on the landing page, and small footer links on the vote and results pages.
 - **Landing page replaces the current design preview** at `/+page.svelte` (which is marked for removal).
 - **No auth required**: The landing page and form submission are fully public. RLS allows anonymous INSERT.
 
@@ -55,7 +55,7 @@ Add a public landing page at `/` that introduces PintPoll and lets prospective o
   1. **Hero**: App name/logo + tagline ("Digital voting for homebrew competition people's choice awards"). "Request Access" button that scrolls to the form section.
   2. **How It Works**: Two columns (or stacked on mobile) — Voter flow (scan QR → allocate points → update anytime before results) and Organizer flow (create event → generate QR codes → reveal results live).
   3. **Request Access form**: Inline section with name, email, club/organization name, optional message. Submit button. Success/error feedback.
-  4. **Footer**: Ko-fi tip link (placeholder URL), minimal copyright/branding.
+  4. **Footer**: Ko-fi tip link (ko-fi.com/natemartinsf), minimal copyright/branding.
 - **Server action**: `+page.server.ts` with a named `requestAccess` action that inserts into `access_requests`. Uses the public Supabase client (anon). Basic validation (required fields, email format). Returns success/error to the form. On success, also sends notification email (Task 5).
 - **Styling**: Use existing craft brewery design system — `.card`, `.btn-primary`, `.input`, `.heading`, `.subheading`, `.text-muted`, amber/brown palette, cream background.
 - **Acceptance criteria**: Landing page renders at `/`. Form submits and inserts a row into `access_requests`. Success message shown after submission. Page is mobile-first and consistent with existing styling.
@@ -77,7 +77,15 @@ Add a public landing page at `/` that introduces PintPoll and lets prospective o
 - **Server actions**: Add `approveRequest` and `dismissRequest` actions that update the `status` field.
 - **Acceptance criteria**: Pending requests visible on the Manage Admins page. Status can be updated. The admin can then copy the email and use the existing Add Admin form to invite.
 
+### Task 7: Ko-fi link on vote and results pages
+
+- **What**: Add a subtle footer with the Ko-fi link to both the vote page (`/vote/[event_code]/[voter_code]`) and the results page (`/results/[code]`).
+- **Placement**: Both pages currently end with no footer. Add a small centered footer after the main content — muted text, small font, something like "Made with [beer emoji] by PintPoll · Support us on Ko-fi". Link to `https://ko-fi.com/natemartinsf`.
+- **Vote page**: After the beer list, inside the outer `min-h-screen` div.
+- **Results page**: After `</main>`, inside the `flex flex-col` container (will naturally sit at the bottom).
+- **Styling**: `.text-muted`, `text-xs` or `text-sm`, generous top padding to separate from content. Should not distract from the voting/results experience.
+- **Acceptance criteria**: Both pages show a subtle Ko-fi link at the bottom. Link opens in a new tab. Does not interfere with existing layout or functionality.
+
 ## Open Questions
 
 - **Rate limiting on the public form**: Not implementing now. If spam becomes an issue, can add a simple honeypot field or Supabase rate limiting later.
-- **Ko-fi URL**: Using placeholder. Swap in real URL when available.
