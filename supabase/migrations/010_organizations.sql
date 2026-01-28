@@ -15,8 +15,8 @@ CREATE TABLE organizations (
 -- 2. ADD ORGANIZATION_ID TO ADMINS AND EVENTS (nullable for backfill)
 -- ============================================================================
 
-ALTER TABLE admins ADD COLUMN organization_id UUID REFERENCES organizations(id);
-ALTER TABLE events ADD COLUMN organization_id UUID REFERENCES organizations(id);
+ALTER TABLE admins ADD COLUMN organization_id UUID REFERENCES organizations(id) ON DELETE RESTRICT;
+ALTER TABLE events ADD COLUMN organization_id UUID REFERENCES organizations(id) ON DELETE RESTRICT;
 
 -- ============================================================================
 -- 3. BACKFILL: Create default org, assign all existing admins and events
@@ -81,6 +81,14 @@ CREATE POLICY "events_delete_org"
   ON events FOR DELETE
   TO authenticated
   USING (
+    organization_id = get_admin_org_id()
+    OR is_super_admin()
+  );
+
+CREATE POLICY "events_insert_org"
+  ON events FOR INSERT
+  TO authenticated
+  WITH CHECK (
     organization_id = get_admin_org_id()
     OR is_super_admin()
   );
