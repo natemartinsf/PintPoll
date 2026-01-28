@@ -61,9 +61,9 @@
 					bind:value={email}
 					placeholder="user@example.com"
 					required
-					class="input flex-1"
+					class="input flex-1 w-auto min-w-0"
 				/>
-				<select name="organizationId" bind:value={selectedOrgId} required class="input">
+				<select name="organizationId" bind:value={selectedOrgId} required class="input w-auto shrink-0">
 					<option value="">Select org...</option>
 					{#each data.organizations as org}
 						<option value={org.id}>{org.name}</option>
