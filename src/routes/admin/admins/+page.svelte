@@ -10,6 +10,13 @@
 	let orgName = $state('');
 	let isCreatingOrg = $state(false);
 
+	// Approve flow state: which request is being approved, and org selection
+	let approvingRequestId = $state<string | null>(null);
+	let approveOrgChoice = $state<'existing' | 'new'>('new');
+	let approveOrgId = $state('');
+	let approveNewOrgName = $state('');
+	let isApproving = $state(false);
+
 	const pendingRequests = $derived(
 		data.accessRequests.filter((r) => r.status === 'pending')
 	);
@@ -184,6 +191,7 @@
 		{:else}
 			<ul class="divide-y divide-brown-100">
 				{#each pendingRequests as req}
+					{@const isExpanded = approvingRequestId === req.id}
 					<li class="py-4">
 						<div class="flex items-start justify-between gap-4">
 							<div class="min-w-0 flex-1">
@@ -201,19 +209,91 @@
 									})}
 								</p>
 							</div>
-							<div class="flex gap-2 shrink-0">
-								<form method="POST" action="?/approveRequest" use:enhance>
-									<input type="hidden" name="requestId" value={req.id} />
-									<button type="submit" class="btn-primary text-sm px-3 py-1">Approve</button>
-								</form>
-								<form method="POST" action="?/dismissRequest" use:enhance>
-									<input type="hidden" name="requestId" value={req.id} />
-									<button type="submit" class="btn-ghost text-brown-500 hover:text-brown-700 text-sm">
-										Dismiss
-									</button>
-								</form>
-							</div>
+							{#if !isExpanded}
+								<div class="flex gap-2 shrink-0">
+									<button
+										type="button"
+										class="btn-primary text-sm px-3 py-1"
+										onclick={() => {
+											approvingRequestId = req.id;
+											approveOrgChoice = 'new';
+											approveOrgId = '';
+											approveNewOrgName = req.club_name;
+										}}
+									>Approve</button>
+									<form method="POST" action="?/dismissRequest" use:enhance>
+										<input type="hidden" name="requestId" value={req.id} />
+										<button type="submit" class="btn-ghost text-brown-500 hover:text-brown-700 text-sm">
+											Dismiss
+										</button>
+									</form>
+								</div>
+							{:else}
+								<button
+									type="button"
+									class="btn-ghost text-brown-500 hover:text-brown-700 text-sm shrink-0"
+									onclick={() => { approvingRequestId = null; }}
+								>Cancel</button>
+							{/if}
 						</div>
+
+						{#if isExpanded}
+							<form
+								method="POST"
+								action="?/approveRequest"
+								use:enhance={() => {
+									isApproving = true;
+									return async ({ update }) => {
+										await update();
+										isApproving = false;
+										if (form?.approveSuccess) {
+											approvingRequestId = null;
+										}
+									};
+								}}
+								class="mt-4 p-4 bg-brown-50 rounded-lg space-y-3"
+							>
+								<input type="hidden" name="requestId" value={req.id} />
+								<p class="text-sm font-medium text-brown-900">Assign organization</p>
+
+								<div class="flex gap-4">
+									<label class="flex items-center gap-1.5 text-sm text-brown-700 cursor-pointer">
+										<input type="radio" bind:group={approveOrgChoice} value="new" class="accent-amber-700" />
+										Create new
+									</label>
+									<label class="flex items-center gap-1.5 text-sm text-brown-700 cursor-pointer">
+										<input type="radio" bind:group={approveOrgChoice} value="existing" class="accent-amber-700" />
+										Use existing
+									</label>
+								</div>
+
+								{#if approveOrgChoice === 'new'}
+									<input
+										type="text"
+										name="newOrgName"
+										bind:value={approveNewOrgName}
+										placeholder="Organization name"
+										required
+										class="input w-full"
+									/>
+								{:else}
+									<select name="organizationId" bind:value={approveOrgId} required class="input w-full">
+										<option value="">Select organization...</option>
+										{#each data.organizations as org}
+											<option value={org.id}>{org.name}</option>
+										{/each}
+									</select>
+								{/if}
+
+								{#if form?.approveError && form?.approveRequestId === req.id}
+									<p class="text-red-600 text-sm">{form.approveError}</p>
+								{/if}
+
+								<button type="submit" disabled={isApproving} class="btn-primary text-sm">
+									{isApproving ? 'Approving...' : 'Confirm & Invite'}
+								</button>
+							</form>
+						{/if}
 					</li>
 				{/each}
 			</ul>

@@ -1,6 +1,33 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Admin, AccessRequest, Organization } from '$lib/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+/**
+ * Find or invite a user by email, returning their user ID.
+ * Uses the service-role client to call admin auth APIs.
+ */
+async function findOrInviteUser(
+	supabaseAdmin: SupabaseClient,
+	email: string
+): Promise<{ userId: string; invited: boolean } | { error: string }> {
+	const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
+	const existingUser = userData?.users.find((u) => u.email?.toLowerCase() === email);
+
+	if (existingUser) {
+		return { userId: existingUser.id, invited: false };
+	}
+
+	const { data: inviteData, error: inviteError } =
+		await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+
+	if (inviteError) {
+		console.error('Error inviting user:', inviteError);
+		return { error: `Failed to invite user: ${inviteError.message}` };
+	}
+
+	return { userId: inviteData.user.id, invited: true };
+}
 
 export const load: PageServerLoad = async ({ parent, locals }) => {
 	const parentData = await parent();
@@ -100,34 +127,15 @@ export const actions: Actions = {
 			return fail(500, { error: 'Admin operations not available. Service role not configured.' });
 		}
 
-		// Check if user already exists in auth.users
-		const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
-		const existingUser = userData?.users.find(u => u.email?.toLowerCase() === email);
-
-		let userId: string;
-
-		if (existingUser) {
-			// User exists, just add them as admin
-			userId = existingUser.id;
-		} else {
-			// Invite new user
-			// Note: redirectTo is NOT passed here. The invite email template
-			// handles routing directly via token_hash to /auth/callback.
-			// See Supabase Dashboard → Auth → Email Templates → "Invite user".
-			const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
-
-			if (inviteError) {
-				console.error('Error inviting user:', inviteError);
-				return fail(500, { error: `Failed to invite user: ${inviteError.message}` });
-			}
-
-			userId = inviteData.user.id;
+		const result = await findOrInviteUser(supabaseAdmin, email);
+		if ('error' in result) {
+			return fail(500, { error: result.error });
 		}
 
 		// Create admin record (use authenticated client - RLS allows admins to insert)
 		const { error: insertError } = await locals.supabase
 			.from('admins')
-			.insert({ user_id: userId, email, organization_id: organizationId });
+			.insert({ user_id: result.userId, email, organization_id: organizationId });
 
 		if (insertError) {
 			console.error('Error creating admin:', insertError);
@@ -137,12 +145,12 @@ export const actions: Actions = {
 			return fail(500, { error: 'Failed to add admin' });
 		}
 
-		return { success: true, invited: !existingUser };
+		return { success: true, invited: result.invited };
 	},
 
 	approveRequest: async ({ request, locals }) => {
 		const { user } = await locals.safeGetSession();
-		if (!user) return fail(403, { error: 'Not authorized' });
+		if (!user) return fail(403, { approveError: 'Not authorized' });
 
 		const { data: currentAdmin } = await locals.supabase
 			.from('admins')
@@ -150,23 +158,87 @@ export const actions: Actions = {
 			.eq('user_id', user.id)
 			.single();
 
-		if (!currentAdmin?.is_super) return fail(403, { error: 'Not authorized' });
+		if (!currentAdmin?.is_super) return fail(403, { approveError: 'Not authorized' });
+
+		const supabaseAdmin = locals.supabaseAdmin;
+		if (!supabaseAdmin) {
+			return fail(500, { approveError: 'Admin operations not available. Service role not configured.' });
+		}
 
 		const formData = await request.formData();
 		const requestId = formData.get('requestId')?.toString();
-		if (!requestId) return fail(400, { error: 'Request ID is required' });
+		if (!requestId) return fail(400, { approveError: 'Request ID is required' });
 
-		const { error } = await locals.supabase
+		const organizationId = formData.get('organizationId')?.toString();
+		const newOrgName = formData.get('newOrgName')?.toString().trim();
+
+		if (!organizationId && !newOrgName) {
+			return fail(400, { approveError: 'Organization is required', approveRequestId: requestId });
+		}
+
+		// Fetch the access request
+		const { data: accessRequest, error: fetchError } = await locals.supabase
+			.from('access_requests')
+			.select('*')
+			.eq('id', requestId)
+			.single();
+
+		if (fetchError || !accessRequest) {
+			console.error('Error fetching access request:', fetchError);
+			return fail(500, { approveError: 'Failed to fetch access request' });
+		}
+
+		// Resolve organization ID
+		let orgId = organizationId;
+		if (!orgId && newOrgName) {
+			const { data: newOrg, error: orgError } = await locals.supabase
+				.from('organizations')
+				.insert({ name: newOrgName })
+				.select('id')
+				.single();
+
+			if (orgError) {
+				console.error('Error creating organization:', orgError);
+				const msg = orgError.code === '23505'
+					? 'An organization with that name already exists'
+					: 'Failed to create organization';
+				return fail(orgError.code === '23505' ? 400 : 500, { approveError: msg, approveRequestId: requestId });
+			}
+			orgId = newOrg.id;
+		}
+
+		// Find or invite the user
+		const email = accessRequest.email.toLowerCase();
+		const result = await findOrInviteUser(supabaseAdmin, email);
+		if ('error' in result) {
+			return fail(500, { approveError: result.error, approveRequestId: requestId });
+		}
+
+		// Create admin record
+		const { error: insertError } = await locals.supabase
+			.from('admins')
+			.insert({ user_id: result.userId, email, organization_id: orgId });
+
+		if (insertError) {
+			console.error('Error creating admin:', insertError);
+			const msg = insertError.code === '23505'
+				? 'This user is already an admin'
+				: 'Failed to create admin record';
+			return fail(insertError.code === '23505' ? 400 : 500, { approveError: msg, approveRequestId: requestId });
+		}
+
+		// Mark request as approved
+		const { error: updateError } = await locals.supabase
 			.from('access_requests')
 			.update({ status: 'approved' })
 			.eq('id', requestId);
 
-		if (error) {
-			console.error('Error approving request:', error);
-			return fail(500, { error: 'Failed to approve request' });
+		if (updateError) {
+			console.error('Error approving request:', updateError);
+			return fail(500, { approveError: 'Admin created but failed to update request status' });
 		}
 
-		return { success: true };
+		return { approveSuccess: true };
 	},
 
 	dismissRequest: async ({ request, locals }) => {
