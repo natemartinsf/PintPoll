@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          club_name: string
+          created_at: string | null
+          email: string
+          id: string
+          message: string | null
+          name: string
+          status: string
+        }
+        Insert: {
+          club_name: string
+          created_at?: string | null
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          status?: string
+        }
+        Update: {
+          club_name?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       admins: {
         Row: {
           created_at: string | null
@@ -301,7 +331,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_short_code: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
