@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
@@ -41,6 +42,35 @@ export const actions: Actions = {
 		if (error) {
 			console.error('Failed to insert access request:', error);
 			return fail(500, { error: 'Something went wrong. Please try again.' });
+		}
+
+		// Best-effort email notification — don't block form submission
+		if (env.RESEND_API_KEY && env.NOTIFY_EMAIL) {
+			try {
+				const body = [
+					`New PintPoll access request from ${name} (${email}) at ${club_name}.`,
+					message ? `\nMessage:\n${message}` : ''
+				].join('');
+
+				const res = await fetch('https://api.resend.com/emails', {
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${env.RESEND_API_KEY}`,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						from: 'PintPoll <noreply@pintpoll.com>',
+						to: env.NOTIFY_EMAIL,
+						subject: `Access request from ${name} (${club_name})`,
+						text: body
+					})
+				});
+				if (!res.ok) {
+					console.error('Resend API error:', res.status, await res.text());
+				}
+			} catch (err) {
+				console.error('Failed to send notification email:', err);
+			}
 		}
 
 		return { success: true };
