@@ -5,6 +5,14 @@
 
 	let email = $state('');
 	let isSubmitting = $state(false);
+	let showResolved = $state(false);
+
+	const pendingRequests = $derived(
+		data.accessRequests.filter((r) => r.status === 'pending')
+	);
+	const resolvedRequests = $derived(
+		data.accessRequests.filter((r) => r.status !== 'pending')
+	);
 </script>
 
 <svelte:head>
@@ -97,6 +105,96 @@
 					</li>
 				{/each}
 			</ul>
+		{/if}
+	</div>
+
+	<!-- Access Requests -->
+	<div class="card">
+		<h2 class="text-lg font-semibold text-brown-900 mb-4">Access Requests</h2>
+
+		{#if pendingRequests.length === 0}
+			<p class="text-muted">No pending requests.</p>
+		{:else}
+			<ul class="divide-y divide-brown-100">
+				{#each pendingRequests as req}
+					<li class="py-4">
+						<div class="flex items-start justify-between gap-4">
+							<div class="min-w-0 flex-1">
+								<p class="font-medium text-brown-900">{req.name}</p>
+								<p class="text-sm text-brown-700">{req.email}</p>
+								<p class="text-sm text-muted">{req.club_name}</p>
+								{#if req.message}
+									<p class="text-sm text-brown-600 mt-1 italic">"{req.message}"</p>
+								{/if}
+								<p class="text-xs text-muted mt-1">
+									{new Date(req.created_at ?? '').toLocaleDateString('en-US', {
+										month: 'short',
+										day: 'numeric',
+										year: 'numeric'
+									})}
+								</p>
+							</div>
+							<div class="flex gap-2 shrink-0">
+								<form method="POST" action="?/approveRequest" use:enhance>
+									<input type="hidden" name="requestId" value={req.id} />
+									<button type="submit" class="btn-primary text-sm px-3 py-1">Approve</button>
+								</form>
+								<form method="POST" action="?/dismissRequest" use:enhance>
+									<input type="hidden" name="requestId" value={req.id} />
+									<button type="submit" class="btn-ghost text-brown-500 hover:text-brown-700 text-sm">
+										Dismiss
+									</button>
+								</form>
+							</div>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+
+		{#if resolvedRequests.length > 0}
+			<div class="mt-4 pt-4 border-t border-brown-100">
+				<button
+					type="button"
+					class="text-sm text-muted hover:text-brown-700 transition-colors"
+					onclick={() => (showResolved = !showResolved)}
+				>
+					{showResolved ? 'Hide' : 'Show'} resolved ({resolvedRequests.length})
+				</button>
+
+				{#if showResolved}
+					<ul class="divide-y divide-brown-100 mt-3">
+						{#each resolvedRequests as req}
+							<li class="py-3 opacity-60">
+								<div class="flex items-start justify-between gap-4">
+									<div class="min-w-0 flex-1">
+										<p class="font-medium text-brown-900">{req.name}</p>
+										<p class="text-sm text-brown-700">{req.email}</p>
+										<p class="text-sm text-muted">{req.club_name}</p>
+										{#if req.message}
+											<p class="text-sm text-brown-600 mt-1 italic">"{req.message}"</p>
+										{/if}
+										<p class="text-xs text-muted mt-1">
+											{new Date(req.created_at ?? '').toLocaleDateString('en-US', {
+												month: 'short',
+												day: 'numeric',
+												year: 'numeric'
+											})}
+										</p>
+									</div>
+									<span
+										class="text-xs font-medium px-2 py-1 rounded-full shrink-0 {req.status === 'approved'
+											? 'bg-green-100 text-green-700'
+											: 'bg-brown-100 text-brown-500'}"
+									>
+										{req.status}
+									</span>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
 		{/if}
 	</div>
 </div>

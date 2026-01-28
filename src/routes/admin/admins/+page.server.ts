@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import type { Admin } from '$lib/types';
+import type { Admin, AccessRequest } from '$lib/types';
 
 export const load: PageServerLoad = async ({ parent, locals }) => {
 	const parentData = await parent();
@@ -9,18 +9,27 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 		throw redirect(303, '/admin');
 	}
 
-	const { data: admins, error } = await locals.supabase
-		.from('admins')
-		.select('*')
-		.order('created_at', { ascending: true });
+	const [adminsResult, requestsResult] = await Promise.all([
+		locals.supabase
+			.from('admins')
+			.select('*')
+			.order('created_at', { ascending: true }),
+		locals.supabase
+			.from('access_requests')
+			.select('*')
+			.order('created_at', { ascending: false })
+	]);
 
-	if (error) {
-		console.error('Error fetching admins:', error);
-		return { admins: [] as Admin[] };
+	if (adminsResult.error) {
+		console.error('Error fetching admins:', adminsResult.error);
+	}
+	if (requestsResult.error) {
+		console.error('Error fetching access requests:', requestsResult.error);
 	}
 
 	return {
-		admins: admins as Admin[]
+		admins: (adminsResult.data ?? []) as Admin[],
+		accessRequests: (requestsResult.data ?? []) as AccessRequest[]
 	};
 };
 
@@ -103,6 +112,64 @@ export const actions: Actions = {
 		}
 
 		return { success: true, invited: !existingUser };
+	},
+
+	approveRequest: async ({ request, locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) return fail(403, { error: 'Not authorized' });
+
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id, is_super')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin?.is_super) return fail(403, { error: 'Not authorized' });
+
+		const formData = await request.formData();
+		const requestId = formData.get('requestId')?.toString();
+		if (!requestId) return fail(400, { error: 'Request ID is required' });
+
+		const { error } = await locals.supabase
+			.from('access_requests')
+			.update({ status: 'approved' })
+			.eq('id', requestId);
+
+		if (error) {
+			console.error('Error approving request:', error);
+			return fail(500, { error: 'Failed to approve request' });
+		}
+
+		return { success: true };
+	},
+
+	dismissRequest: async ({ request, locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) return fail(403, { error: 'Not authorized' });
+
+		const { data: currentAdmin } = await locals.supabase
+			.from('admins')
+			.select('id, is_super')
+			.eq('user_id', user.id)
+			.single();
+
+		if (!currentAdmin?.is_super) return fail(403, { error: 'Not authorized' });
+
+		const formData = await request.formData();
+		const requestId = formData.get('requestId')?.toString();
+		if (!requestId) return fail(400, { error: 'Request ID is required' });
+
+		const { error } = await locals.supabase
+			.from('access_requests')
+			.update({ status: 'dismissed' })
+			.eq('id', requestId);
+
+		if (error) {
+			console.error('Error dismissing request:', error);
+			return fail(500, { error: 'Failed to dismiss request' });
+		}
+
+		return { success: true };
 	},
 
 	remove: async ({ request, locals }) => {

@@ -41,3 +41,7 @@ export type EventAdminUpdate = Database['public']['Tables']['event_admins']['Upd
 export type ShortCode = Database['public']['Tables']['short_codes']['Row'];
 export type ShortCodeInsert = Database['public']['Tables']['short_codes']['Insert'];
 export type ShortCodeUpdate = Database['public']['Tables']['short_codes']['Update'];
+
+export type AccessRequest = Database['public']['Tables']['access_requests']['Row'];
+export type AccessRequestInsert = Database['public']['Tables']['access_requests']['Insert'];
+export type AccessRequestUpdate = Database['public']['Tables']['access_requests']['Update'];
