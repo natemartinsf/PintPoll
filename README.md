@@ -61,8 +61,8 @@ Migrations are applied automatically via GitHub Actions when changes are pushed.
 - events, beers, voters, votes
 - feedback (for brewer notes)
 - brewer_tokens (magic URLs for brewers)
-- admins, event_admins, admin_invites
-- url_codes (short 8-character codes for all public URLs)
+- organizations, admins (org-based access), access_requests
+- short_codes (8-character codes for all public URLs)
 
 ### 3. Enable Email/Password Auth
 

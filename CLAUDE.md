@@ -29,15 +29,16 @@ QR codes are generated from the admin UI (no CLI script). Admin selects event, e
 
 ### Database Schema (Supabase)
 
-- **events**: id, name, date, max_points, results_visible, manage_token
+- **organizations**: id, name, created_at
+- **events**: id, name, date, max_points, organization_id, results_visible, manage_token
 - **voters**: id (UUID from QR), event_id
 - **beers**: id, event_id, name, brewer, style
 - **votes**: voter_id, beer_id, points
 - **feedback**: voter_id, beer_id, notes, share_with_brewer
 - **brewer_tokens**: id (UUID for URL), beer_id
 - **short_codes**: code (8-char a-z0-9), target_type (event/voter/manage/brewer), target_id (UUID)
-- **admins**: id, user_id, email
-- **event_admins**: event_id, admin_id (admins only see assigned events)
+- **admins**: id, user_id, email, organization_id, is_super
+- **access_requests**: id, name, email, club_name, message, status
 
 ### Key Routes (SvelteKit)
 
@@ -52,7 +53,7 @@ QR codes are generated from the admin UI (no CLI script). Admin selects event, e
 
 Voters use short-code URLs (8-char alphanumeric codes that resolve to UUIDs via `short_codes` table). No login flow - voter records are created lazily on first page load via upsert. Short codes are generated at QR print time; the voter UUID may not exist in the `voters` table until first visit.
 
-Admin uses Supabase session auth with RLS policies.
+Admin uses Supabase session auth with RLS policies. Admins belong to an organization; events belong to an organization. Access is determined by org match (admin sees all events in their org). Super admins can see all events across orgs.
 
 ### Real-time Features
 
