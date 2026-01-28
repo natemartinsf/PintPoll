@@ -50,6 +50,7 @@ export type Database = {
           email: string
           id: string
           is_super: boolean
+          organization_id: string
           user_id: string | null
         }
         Insert: {
@@ -57,6 +58,7 @@ export type Database = {
           email: string
           id?: string
           is_super?: boolean
+          organization_id: string
           user_id?: string | null
         }
         Update: {
@@ -64,9 +66,18 @@ export type Database = {
           email?: string
           id?: string
           is_super?: boolean
+          organization_id?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admins_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       beers: {
         Row: {
@@ -129,39 +140,6 @@ export type Database = {
           },
         ]
       }
-      event_admins: {
-        Row: {
-          admin_id: string
-          created_at: string | null
-          event_id: string
-        }
-        Insert: {
-          admin_id: string
-          created_at?: string | null
-          event_id: string
-        }
-        Update: {
-          admin_id?: string
-          created_at?: string | null
-          event_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_admins_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "admins"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_admins_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       events: {
         Row: {
           blind_tasting: boolean | null
@@ -172,6 +150,7 @@ export type Database = {
           manage_token: string | null
           max_points: number | null
           name: string
+          organization_id: string
           reveal_stage: number | null
         }
         Insert: {
@@ -183,6 +162,7 @@ export type Database = {
           manage_token?: string | null
           max_points?: number | null
           name: string
+          organization_id: string
           reveal_stage?: number | null
         }
         Update: {
@@ -194,9 +174,18 @@ export type Database = {
           manage_token?: string | null
           max_points?: number | null
           name?: string
+          organization_id?: string
           reveal_stage?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -239,6 +228,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organizations: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       short_codes: {
         Row: {
@@ -332,6 +339,7 @@ export type Database = {
     }
     Functions: {
       generate_short_code: { Args: never; Returns: string }
+      get_admin_org_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
     }

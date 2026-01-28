@@ -34,9 +34,9 @@ export type Admin = Database['public']['Tables']['admins']['Row'];
 export type AdminInsert = Database['public']['Tables']['admins']['Insert'];
 export type AdminUpdate = Database['public']['Tables']['admins']['Update'];
 
-export type EventAdmin = Database['public']['Tables']['event_admins']['Row'];
-export type EventAdminInsert = Database['public']['Tables']['event_admins']['Insert'];
-export type EventAdminUpdate = Database['public']['Tables']['event_admins']['Update'];
+export type Organization = Database['public']['Tables']['organizations']['Row'];
+export type OrganizationInsert = Database['public']['Tables']['organizations']['Insert'];
+export type OrganizationUpdate = Database['public']['Tables']['organizations']['Update'];
 
 export type ShortCode = Database['public']['Tables']['short_codes']['Row'];
 export type ShortCodeInsert = Database['public']['Tables']['short_codes']['Insert'];
