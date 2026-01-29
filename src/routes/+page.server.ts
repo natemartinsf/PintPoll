@@ -26,7 +26,7 @@ export const actions: Actions = {
 		// Trivia check — brewing knowledge gate
 		const trivia = formData.get('trivia')?.toString();
 		if (trivia?.toLowerCase() !== 'yeast') {
-			return fail(400, { error: "Incorrect answer. Hint: it's the microorganism!" });
+			return { success: true }; // Silent success - don't reveal defense
 		}
 
 		if (!name || !email || !club_name) {
