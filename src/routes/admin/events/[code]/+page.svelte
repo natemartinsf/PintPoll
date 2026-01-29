@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance, deserialize } from '$app/forms';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { Files, Check, RefreshCw, QrCode, Upload, Trash2 } from 'lucide-svelte';
 	import type { Beer } from '$lib/types';
-	import { generateShortCode } from '$lib/short-codes';
-	import QRCodeStyling from 'qr-code-styling';
+		import QRCodeStyling from 'qr-code-styling';
 
 	type BeerWithToken = Beer & { brewer_tokens: { id: string } | null };
 
@@ -204,37 +203,51 @@
 		isGeneratingQR = true;
 
 		try {
-			// Generate voter UUIDs and short codes
-			const voters = [];
-			for (let i = 0; i < qrCount; i++) {
-				voters.push({
-					uuid: crypto.randomUUID(),
-					code: await generateShortCode(data.supabase),
-					number: i + 1
-				});
+			// Call server action to generate and store short codes
+			const formData = new FormData();
+			formData.append('count', qrCount.toString());
+
+			const response = await fetch('?/generateQRCodes', {
+				method: 'POST',
+				body: formData,
+				credentials: 'same-origin',
+				headers: {
+					'Accept': 'application/json'
+				}
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'error') {
+				console.error('Server error:', result.error);
+				alert('Server error. Please try again.');
+				return;
 			}
 
-			// Batch-insert short codes into the database
-			const shortCodeRows = voters.map((v) => ({
-				code: v.code,
-				target_type: 'voter' as const,
-				target_id: v.uuid
-			}));
+			if (result.type === 'failure') {
+				const errorMsg = (result.data as { error?: string })?.error || 'Server error';
+				console.error('Error generating QR codes:', errorMsg);
+				alert(errorMsg);
+				return;
+			}
 
-			const { error: insertError } = await data.supabase
-				.from('short_codes')
-				.insert(shortCodeRows);
+			if (result.type !== 'success') {
+				console.error('Unexpected result type:', result.type);
+				alert('Unexpected error. Please try again.');
+				return;
+			}
 
-			if (insertError) {
-				console.error('Error inserting voter short codes:', insertError);
-				alert('Failed to save voter codes. Please try again.');
+			const voterCodes = (result.data as { voterCodes?: string[] })?.voterCodes;
+			if (!voterCodes || voterCodes.length === 0) {
+				console.error('No voter codes returned:', result);
+				alert('Failed to generate voter codes. Please try again.');
 				return;
 			}
 
 			// Generate QR code data URLs
 			const qrDataUrls: string[] = [];
-			for (const voter of voters) {
-				const url = `https://pintpoll.com/vote/${data.eventCode}/${voter.code}`;
+			for (const code of voterCodes) {
+				const url = `https://pintpoll.com/vote/${data.eventCode}/${code}`;
 
 				// Base QR code options
 				const qrOptions: ConstructorParameters<typeof QRCodeStyling>[0] = {
@@ -283,6 +296,7 @@
 			}
 
 			// Build printable HTML
+			const voters = voterCodes.map((code, i) => ({ code, number: i + 1 }));
 			const html = buildPrintableHtml(voters, qrDataUrls, data.event.name, data.eventCode);
 
 			// Open in new tab
