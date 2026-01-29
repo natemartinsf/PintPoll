@@ -340,6 +340,17 @@ export const actions: Actions = {
 			return fail(400, { changeOrgError: 'Organization is required' });
 		}
 
+		// Verify org exists
+		const { data: orgExists } = await locals.supabase
+			.from('organizations')
+			.select('id')
+			.eq('id', organizationId)
+			.single();
+
+		if (!orgExists) {
+			return fail(400, { changeOrgError: 'Organization not found' });
+		}
+
 		const { error } = await locals.supabase
 			.from('admins')
 			.update({ organization_id: organizationId })
@@ -414,6 +425,16 @@ export const actions: Actions = {
 			return fail(400, { deleteOrgError: 'Organization ID is required' });
 		}
 
+		// Check if org has events (FK constraint ON DELETE RESTRICT)
+		const { count: eventCount } = await locals.supabase
+			.from('events')
+			.select('id', { count: 'exact', head: true })
+			.eq('organization_id', organizationId);
+
+		if (eventCount && eventCount > 0) {
+			return fail(400, { deleteOrgError: 'Cannot delete organization with existing events' });
+		}
+
 		// Check if any admins are assigned to this org
 		const { count } = await locals.supabase
 			.from('admins')
@@ -431,7 +452,11 @@ export const actions: Actions = {
 
 		if (error) {
 			console.error('Error deleting organization:', error);
-			return fail(500, { deleteOrgError: 'Failed to delete organization' });
+			// Handle FK violation (race condition: admin/event added between check and delete)
+			const msg = error.code === '23503'
+				? 'Cannot delete organization: it has assigned admins or events'
+				: 'Failed to delete organization';
+			return fail(error.code === '23503' ? 400 : 500, { deleteOrgError: msg });
 		}
 
 		return { orgDeleted: true };
