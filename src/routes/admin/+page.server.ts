@@ -120,9 +120,14 @@ export const actions: Actions = {
 		}
 
 		// Generate short codes for the event (event + manage types)
+		// Use service role to bypass RLS (short_codes blocks client inserts)
+		if (!locals.supabaseAdmin) {
+			return fail(500, { error: 'Server configuration error' });
+		}
+
 		const eventCode = await generateShortCode(locals.supabase);
 		const manageCode = await generateShortCode(locals.supabase);
-		const { error: codeError } = await locals.supabase
+		const { error: codeError } = await locals.supabaseAdmin
 			.from('short_codes')
 			.insert([
 				{ code: eventCode, target_type: 'event', target_id: event.id },
