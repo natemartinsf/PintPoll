@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance, deserialize } from '$app/forms';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { Files, Check, RefreshCw, QrCode, Upload, Trash2 } from 'lucide-svelte';
@@ -216,23 +216,28 @@
 				}
 			});
 
-			if (!response.ok) {
-				const text = await response.text();
-				console.error('Server error:', response.status, text);
+			const result = deserialize(await response.text());
+
+			if (result.type === 'error') {
+				console.error('Server error:', result.error);
 				alert('Server error. Please try again.');
 				return;
 			}
 
-			const result = await response.json();
-
-			// SvelteKit action responses: { type: 'success'|'failure', data: {...} }
 			if (result.type === 'failure') {
-				console.error('Error generating QR codes:', result.data?.error || 'Server error');
-				alert(result.data?.error || 'Failed to generate voter codes. Please try again.');
+				const errorMsg = (result.data as { error?: string })?.error || 'Server error';
+				console.error('Error generating QR codes:', errorMsg);
+				alert(errorMsg);
 				return;
 			}
 
-			const voterCodes: string[] = result.data?.voterCodes;
+			if (result.type !== 'success') {
+				console.error('Unexpected result type:', result.type);
+				alert('Unexpected error. Please try again.');
+				return;
+			}
+
+			const voterCodes = (result.data as { voterCodes?: string[] })?.voterCodes;
 			if (!voterCodes || voterCodes.length === 0) {
 				console.error('No voter codes returned:', result);
 				alert('Failed to generate voter codes. Please try again.');
