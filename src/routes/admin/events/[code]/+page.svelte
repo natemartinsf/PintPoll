@@ -168,7 +168,11 @@
 					beers = beers.filter((b) => b.id !== deletedId);
 				}
 			)
-			.subscribe();
+			.subscribe((status, err) => {
+				if (status !== 'SUBSCRIBED') {
+					console.warn('Admin beer subscription status:', status, err);
+				}
+			});
 
 		return () => {
 			clearInterval(pollInterval);
