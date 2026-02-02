@@ -303,12 +303,10 @@
 			const voters = voterCodes.map((code, i) => ({ code, number: i + 1 }));
 			const html = buildPrintableHtml(voters, qrDataUrls, data.event.name, data.eventCode);
 
-			// Open in new tab
-			const newWindow = window.open('', '_blank');
-			if (newWindow) {
-				newWindow.document.write(html);
-				newWindow.document.close();
-			}
+			// Open in new tab using blob URL (Safari discards about:blank documents during print)
+			const blob = new Blob([html], { type: 'text/html' });
+			const blobUrl = URL.createObjectURL(blob);
+			window.open(blobUrl, '_blank');
 		} finally {
 			isGeneratingQR = false;
 		}
