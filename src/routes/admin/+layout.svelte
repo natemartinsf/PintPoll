@@ -2,6 +2,19 @@
 	let { data, children } = $props();
 </script>
 
+<style>
+	@media print {
+		header {
+			display: none !important;
+		}
+
+		main {
+			padding: 0 !important;
+			max-width: none !important;
+		}
+	}
+</style>
+
 {#if !data.isAdmin}
 	<div class="min-h-screen flex items-center justify-center p-4">
 		<div class="card text-center max-w-md">
