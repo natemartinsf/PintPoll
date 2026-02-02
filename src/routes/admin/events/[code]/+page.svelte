@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { Files, Check, RefreshCw, QrCode, Upload, Trash2 } from 'lucide-svelte';
 	import type { Beer } from '$lib/types';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 
 	type BeerWithToken = Beer & { brewer_tokens: { id: string } | null };
 
@@ -119,6 +119,14 @@
 
 	// Real-time subscription for beer updates + vote polling
 	onMount(() => {
+		// Refetch data when tab becomes visible (fixes stale data from backgrounded tabs)
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				invalidateAll();
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
 		// Poll vote totals every 10 seconds
 		const pollInterval = setInterval(refreshVoteTotals, 10000);
 
@@ -181,6 +189,7 @@
 			});
 
 		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			clearInterval(pollInterval);
 			data.supabase.removeChannel(channel);
 		};
