@@ -204,7 +204,7 @@
 				(payload) => {
 					const newBeer = payload.new as Beer;
 					if (!beers.some((b) => b.id === newBeer.id)) {
-						beers = [...beers, newBeer];
+						beers = [newBeer, ...beers]; // Prepend new beers to top
 					}
 				}
 			)

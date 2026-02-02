@@ -69,12 +69,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		}
 	}
 
-	// Get beers for this event
+	// Get beers for this event (newest first)
 	const { data: beers, error: beersError } = await locals.supabase
 		.from('beers')
 		.select('*')
 		.eq('event_id', eventId)
-		.order('created_at', { ascending: true });
+		.order('created_at', { ascending: false });
 
 	if (beersError) {
 		console.error('Error fetching beers:', beersError);
