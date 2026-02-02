@@ -76,18 +76,6 @@
 
 <svelte:head>
 	<title>QR Codes - {data.event.name}</title>
-	<style>
-		@page {
-			size: letter;
-			margin: 0.5in;
-		}
-
-		@media print {
-			.no-print {
-				display: none !important;
-			}
-		}
-	</style>
 </svelte:head>
 
 <div class="no-print header">
@@ -217,5 +205,16 @@
 		margin-top: 4px;
 		word-break: break-all;
 		max-width: 100%;
+	}
+
+	@page {
+		size: letter;
+		margin: 0.5in;
+	}
+
+	@media print {
+		.header {
+			display: none !important;
+		}
 	}
 </style>
