@@ -138,6 +138,16 @@
 
 	// Real-time subscription for stage updates during the session
 	onMount(() => {
+		// DEBUG: Load eruda console for mobile debugging
+		const script = document.createElement('script');
+		script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+		script.onload = () => {
+			// @ts-ignore
+			window.eruda.init();
+			console.log('[debug] eruda loaded');
+		};
+		document.body.appendChild(script);
+
 		const channel = data.supabase
 			.channel('results-event')
 			.on(
@@ -165,9 +175,6 @@
 	<title>Results - {data.event.name}</title>
 	<meta property="og:title" content="Results - {data.event.name}">
 	<meta property="og:description" content="See the results for {data.event.name}">
-	<!-- DEBUG: Mobile console - remove after debugging -->
-	<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-	<script>eruda.init();</script>
 </svelte:head>
 
 <div class="min-h-screen flex flex-col">
