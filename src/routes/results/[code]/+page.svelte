@@ -157,34 +157,53 @@
 
 		<!-- Stage 1+: Ceremony has started -->
 	{:else}
-		<header class="py-8 text-center border-b border-brown-200">
+		<header class="text-center border-b border-brown-200 transition-all duration-500 {revealStage >= 2 ? 'py-3' : 'py-8'}">
 			{#if data.event.logo_url}
 				<img
 					src={data.event.logo_url}
 					alt="{data.event.name} logo"
-					class="h-16 md:h-20 w-auto object-contain mx-auto mb-4"
+					class="w-auto object-contain mx-auto transition-all duration-500 {revealStage >= 2 ? 'h-8 md:h-10 mb-2' : 'h-16 md:h-20 mb-4'}"
 				/>
 			{/if}
-			<h1 class="text-3xl md:text-5xl font-bold text-brown-900 mb-2">{data.event.name}</h1>
-			<p class="text-lg text-muted">People's Choice Awards</p>
+			<h1 class="font-bold text-brown-900 transition-all duration-500 {revealStage >= 2 ? 'text-xl md:text-2xl' : 'text-3xl md:text-5xl'}">{data.event.name}</h1>
 		</header>
 
 		<main class="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
-			<!-- Ceremony summary (Stage 1+) -->
-			<div class="grid grid-cols-3 gap-4 mb-12 text-center">
-				<div class="card py-6">
-					<div class="text-4xl md:text-5xl font-bold text-amber-600">{data.stats.beerCount}</div>
-					<div class="text-sm text-muted mt-1">Beers</div>
+			<!-- Dramatic reveal text (Stage 3) - shown prominently at top -->
+			{#if revealStage === 3}
+				<div class="text-center py-6 mb-6">
+					<p class="text-2xl md:text-3xl font-semibold text-brown-700">And the moment we've been waiting for...</p>
 				</div>
-				<div class="card py-6">
-					<div class="text-4xl md:text-5xl font-bold text-amber-600">{data.stats.voterCount}</div>
-					<div class="text-sm text-muted mt-1">Voters</div>
+			{/if}
+
+			<!-- See all results link (after full reveal) -->
+			{#if revealStage >= 4 && restOfRankings.length > 0}
+				<div class="text-center mb-6">
+					<a
+						href="#full-rankings"
+						class="inline-flex items-center gap-2 text-amber-700 hover:text-amber-800 font-medium transition-colors"
+					>
+						See all results
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+						</svg>
+					</a>
 				</div>
-				<div class="card py-6">
-					<div class="text-4xl md:text-5xl font-bold text-amber-600">
-						{data.stats.totalPointsCast}
-					</div>
-					<div class="text-sm text-muted mt-1">Points Cast</div>
+			{/if}
+
+			<!-- Ceremony summary - shrinks once 3rd place revealed -->
+			<div class="grid grid-cols-3 gap-2 text-center transition-all duration-500 {revealStage >= 2 ? 'mb-6' : 'mb-12'}">
+				<div class="card transition-all duration-500 {revealStage >= 2 ? 'py-2 px-2' : 'py-6'}">
+					<div class="font-bold text-amber-600 transition-all duration-500 {revealStage >= 2 ? 'text-lg' : 'text-4xl md:text-5xl'}">{data.stats.beerCount}</div>
+					<div class="text-muted transition-all duration-500 {revealStage >= 2 ? 'text-xs' : 'text-sm mt-1'}">Beers</div>
+				</div>
+				<div class="card transition-all duration-500 {revealStage >= 2 ? 'py-2 px-2' : 'py-6'}">
+					<div class="font-bold text-amber-600 transition-all duration-500 {revealStage >= 2 ? 'text-lg' : 'text-4xl md:text-5xl'}">{data.stats.voterCount}</div>
+					<div class="text-muted transition-all duration-500 {revealStage >= 2 ? 'text-xs' : 'text-sm mt-1'}">Voters</div>
+				</div>
+				<div class="card transition-all duration-500 {revealStage >= 2 ? 'py-2 px-2' : 'py-6'}">
+					<div class="font-bold text-amber-600 transition-all duration-500 {revealStage >= 2 ? 'text-lg' : 'text-4xl md:text-5xl'}">{data.stats.totalPointsCast}</div>
+					<div class="text-muted transition-all duration-500 {revealStage >= 2 ? 'text-xs' : 'text-sm mt-1'}">Points Cast</div>
 				</div>
 			</div>
 
@@ -264,7 +283,7 @@
 
 				<!-- Rest of rankings (4th place onward, shown after 1st place reveal) -->
 				{#if revealStage >= 4 && restOfRankings.length > 0}
-					<div class="mt-12">
+					<div id="full-rankings" class="mt-12 scroll-mt-4">
 						<h2 class="text-xl font-semibold text-brown-800 mb-4 text-center">Full Rankings</h2>
 						<div class="space-y-3">
 							{#each scoreTiers.filter((t) => t.position > 3) as tier (tier.position)}
@@ -293,17 +312,13 @@
 				{/if}
 			</div>
 
-			<!-- Waiting message between stages -->
+			<!-- Waiting message for stage 1 -->
 			{#if revealStage === 1}
 				<div class="text-center py-12">
 					<div class="text-4xl mb-4">🎉</div>
 					<p class="text-xl text-brown-700">The ceremony has begun!</p>
 					<p class="text-muted mt-2">Get ready for the results...</p>
 				</div>
-			{:else if revealStage === 2}
-				<div class="text-center py-8 text-muted">And now... 2nd place coming up!</div>
-			{:else if revealStage === 3}
-				<div class="text-center py-8 text-muted">And the moment we've been waiting for...</div>
 			{/if}
 		</main>
 	{/if}
