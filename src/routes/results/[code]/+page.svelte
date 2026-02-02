@@ -75,6 +75,8 @@
 	});
 
 	function fireConfetti() {
+		console.log('[confetti] fireConfetti called');
+
 		// Multiple bursts for celebration effect
 		const duration = 3000;
 		const end = Date.now() + duration;
@@ -110,6 +112,27 @@
 				origin: { x: 0.5, y: 0.5 },
 				colors
 			});
+
+			// DEBUG: Check canvas state after confetti fires
+			setTimeout(() => {
+				const canvas = document.querySelector('canvas');
+				if (canvas) {
+					const style = window.getComputedStyle(canvas);
+					console.log('[confetti] Canvas found:', {
+						zIndex: style.zIndex,
+						position: style.position,
+						display: style.display,
+						visibility: style.visibility,
+						opacity: style.opacity,
+						width: style.width,
+						height: style.height,
+						top: style.top,
+						left: style.left
+					});
+				} else {
+					console.log('[confetti] No canvas element found in DOM');
+				}
+			}, 100);
 		}, 500);
 	}
 
@@ -142,6 +165,9 @@
 	<title>Results - {data.event.name}</title>
 	<meta property="og:title" content="Results - {data.event.name}">
 	<meta property="og:description" content="See the results for {data.event.name}">
+	<!-- DEBUG: Mobile console - remove after debugging -->
+	<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+	<script>eruda.init();</script>
 </svelte:head>
 
 <div class="min-h-screen flex flex-col">
