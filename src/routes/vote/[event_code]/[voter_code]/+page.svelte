@@ -43,8 +43,8 @@
 		const scrollTop = window.scrollY;
 		const windowHeight = window.innerHeight;
 		const docHeight = document.documentElement.scrollHeight;
-		// Show indicator if there's content below (with 150px threshold)
-		showScrollIndicator = docHeight - scrollTop - windowHeight > 150;
+		// Show indicator if there's content below (with 200px threshold)
+		showScrollIndicator = docHeight - scrollTop - windowHeight > 200;
 	}
 
 	// Recheck scroll indicator when beers change
