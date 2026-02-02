@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import type { Beer, Vote, Feedback } from '$lib/types';
 	import PointPicker from '$lib/components/PointPicker.svelte';
 
@@ -228,6 +228,14 @@
 
 	// Real-time subscriptions and scroll indicator
 	onMount(() => {
+		// Refetch data when tab becomes visible (fixes stale data from backgrounded tabs)
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				invalidateAll();
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
 		// Set up scroll indicator
 		checkScrollIndicator();
 		window.addEventListener('scroll', checkScrollIndicator);
@@ -301,6 +309,7 @@
 			.subscribe();
 
 		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('scroll', checkScrollIndicator);
 			window.removeEventListener('resize', checkScrollIndicator);
 			data.supabase.removeChannel(beersChannel);
