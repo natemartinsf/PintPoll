@@ -43,8 +43,8 @@
 		const scrollTop = window.scrollY;
 		const windowHeight = window.innerHeight;
 		const docHeight = document.documentElement.scrollHeight;
-		// Show indicator if there's content below (with 50px threshold)
-		showScrollIndicator = docHeight - scrollTop - windowHeight > 50;
+		// Show indicator if there's content below (with 150px threshold)
+		showScrollIndicator = docHeight - scrollTop - windowHeight > 150;
 	}
 
 	// Recheck scroll indicator when beers change
@@ -344,12 +344,12 @@
 		{/if}
 
 		{#if showInstructions && beers.length > 0}
-			<div class="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center justify-between gap-2">
-				<span>Tap a beer to allocate points. You have {data.event.max_points ?? 5} points to distribute.</span>
+			<div class="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start justify-between gap-2">
+				<span>Tap a number to allocate points. You have {data.event.max_points ?? 5} points to distribute—split them between beers or give them all to one. Tap a number again to remove points.</span>
 				<button
 					type="button"
 					onclick={dismissInstructions}
-					class="text-amber-600 hover:text-amber-800 font-medium px-1"
+					class="text-amber-600 hover:text-amber-800 font-medium px-1 shrink-0"
 					aria-label="Dismiss"
 				>×</button>
 			</div>
