@@ -27,10 +27,43 @@
 	// Track feedback saves separately (don't block votes)
 	let savingFeedback = $state<Record<string, boolean>>({});
 
+	// Scroll indicator state
+	let showScrollIndicator = $state(false);
+
+	// Voting instructions state (dismissed via localStorage)
+	let showInstructions = $state(false);
+
 	// Sync from server data (runs once on mount, and if data.beers changes)
 	$effect(() => {
 		beers = [...data.beers];
 	});
+
+	// Check if there's more content to scroll (window-based)
+	function checkScrollIndicator() {
+		const scrollTop = window.scrollY;
+		const windowHeight = window.innerHeight;
+		const docHeight = document.documentElement.scrollHeight;
+		// Show indicator if there's content below (with 200px threshold)
+		showScrollIndicator = docHeight - scrollTop - windowHeight > 200;
+	}
+
+	// Recheck scroll indicator when beers change
+	$effect(() => {
+		if (beers.length) {
+			// Defer to let DOM update
+			setTimeout(checkScrollIndicator, 0);
+		}
+	});
+
+	// Dismiss voting instructions
+	function dismissInstructions() {
+		showInstructions = false;
+		try {
+			localStorage.setItem('vote-instructions-dismissed', 'true');
+		} catch {
+			// localStorage unavailable
+		}
+	}
 
 	// Initialize votes from server data
 	$effect(() => {
@@ -78,6 +111,11 @@
 	// Handle vote change
 	async function handleVoteChange(beerId: string, newPoints: number) {
 		if (saving) return; // Prevent concurrent saves
+
+		// Auto-dismiss instructions on first interaction
+		if (showInstructions) {
+			dismissInstructions();
+		}
 
 		const oldPoints = votesByBeer[beerId] ?? 0;
 
@@ -188,8 +226,23 @@
 		await saveFeedback(beerId);
 	}
 
-	// Real-time subscriptions
+	// Real-time subscriptions and scroll indicator
 	onMount(() => {
+		// Set up scroll indicator
+		checkScrollIndicator();
+		window.addEventListener('scroll', checkScrollIndicator);
+		window.addEventListener('resize', checkScrollIndicator);
+
+		// Show voting instructions if not previously dismissed
+		try {
+			if (!localStorage.getItem('vote-instructions-dismissed')) {
+				showInstructions = true;
+			}
+		} catch {
+			// localStorage unavailable, show instructions
+			showInstructions = true;
+		}
+
 		// Subscribe to beer changes
 		const beersChannel = data.supabase
 			.channel('voter-beers')
@@ -204,7 +257,7 @@
 				(payload) => {
 					const newBeer = payload.new as Beer;
 					if (!beers.some((b) => b.id === newBeer.id)) {
-						beers = [...beers, newBeer];
+						beers = [newBeer, ...beers]; // Prepend new beers to top
 					}
 				}
 			)
@@ -248,6 +301,8 @@
 			.subscribe();
 
 		return () => {
+			window.removeEventListener('scroll', checkScrollIndicator);
+			window.removeEventListener('resize', checkScrollIndicator);
 			data.supabase.removeChannel(beersChannel);
 			data.supabase.removeChannel(eventChannel);
 		};
@@ -285,6 +340,18 @@
 		{#if saveError}
 			<div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
 				{saveError}
+			</div>
+		{/if}
+
+		{#if showInstructions && beers.length > 0}
+			<div class="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start justify-between gap-2">
+				<span>Tap a number to allocate points. You have {data.event.max_points ?? 5} points to distribute—split them between beers or give them all to one. Tap a number again to remove points.</span>
+				<button
+					type="button"
+					onclick={dismissInstructions}
+					class="text-amber-600 hover:text-amber-800 font-medium px-1 shrink-0"
+					aria-label="Dismiss"
+				>×</button>
 			</div>
 		{/if}
 
@@ -369,3 +436,10 @@
 		</a>
 	</footer>
 </div>
+
+<!-- Scroll indicator -->
+{#if showScrollIndicator && beers.length > 0}
+	<div class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-brown-800/80 text-white text-sm px-3 py-1.5 rounded-full backdrop-blur-sm pointer-events-none">
+		<span class="mr-1">↓</span> More beers
+	</div>
+{/if}
