@@ -56,6 +56,14 @@
 			.flatMap((t) => t.beers)
 	);
 
+	// Reset animation state when ceremony is reset
+	$effect(() => {
+		if (revealStage <= 1) {
+			confettiFired = false;
+			animatedPlaces = new Set();
+		}
+	});
+
 	// Trigger animations when stage changes
 	$effect(() => {
 		if (revealStage >= 2 && !animatedPlaces.has(3)) {
@@ -75,8 +83,6 @@
 	});
 
 	function fireConfetti() {
-		console.log('[confetti] fireConfetti called');
-
 		// Multiple bursts for celebration effect
 		const duration = 3000;
 		const end = Date.now() + duration;
@@ -112,42 +118,11 @@
 				origin: { x: 0.5, y: 0.5 },
 				colors
 			});
-
-			// DEBUG: Check canvas state after confetti fires
-			setTimeout(() => {
-				const canvas = document.querySelector('canvas');
-				if (canvas) {
-					const style = window.getComputedStyle(canvas);
-					console.log('[confetti] Canvas found:', {
-						zIndex: style.zIndex,
-						position: style.position,
-						display: style.display,
-						visibility: style.visibility,
-						opacity: style.opacity,
-						width: style.width,
-						height: style.height,
-						top: style.top,
-						left: style.left
-					});
-				} else {
-					console.log('[confetti] No canvas element found in DOM');
-				}
-			}, 100);
 		}, 500);
 	}
 
 	// Real-time subscription for stage updates during the session
 	onMount(() => {
-		// DEBUG: Load eruda console for mobile debugging
-		const script = document.createElement('script');
-		script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-		script.onload = () => {
-			// @ts-ignore
-			window.eruda.init();
-			console.log('[debug] eruda loaded');
-		};
-		document.body.appendChild(script);
-
 		const channel = data.supabase
 			.channel('results-event')
 			.on(
