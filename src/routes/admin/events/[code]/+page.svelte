@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance, deserialize } from '$app/forms';
+	import { enhance, deserialize, applyAction } from '$app/forms';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { Files, Check, RefreshCw, QrCode, Upload, Trash2 } from 'lucide-svelte';
@@ -630,7 +630,8 @@
 							// Revert on error
 							revealStage = previousStage;
 						}
-						// Don't call update() - we already updated optimistically
+						// Apply action to clear form resubmission state without full reload
+						await applyAction(result);
 					};
 				}}
 			>
@@ -663,7 +664,8 @@
 								// Revert on error
 								revealStage = previousStage;
 							}
-							// Don't call update() - we already updated optimistically
+							// Apply action to clear form resubmission state without full reload
+							await applyAction(result);
 						};
 					}}
 				>
