@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { Files, Check, RefreshCw, QrCode, Upload, Trash2 } from 'lucide-svelte';
 	import type { Beer } from '$lib/types';
-		import QRCodeStyling from 'qr-code-styling';
+	import { goto } from '$app/navigation';
 
 	type BeerWithToken = Beer & { brewer_tokens: { id: string } | null };
 
@@ -248,177 +248,14 @@
 				return;
 			}
 
-			// Generate QR code data URLs
-			const qrDataUrls: string[] = [];
-			for (const code of voterCodes) {
-				const url = `https://pintpoll.com/vote/${data.eventCode}/${code}`;
-
-				// Base QR code options
-				const qrOptions: ConstructorParameters<typeof QRCodeStyling>[0] = {
-					width: 200,
-					height: 200,
-					data: url,
-					dotsOptions: {
-						color: '#4a3728',
-						type: 'rounded'
-					},
-					cornersSquareOptions: {
-						color: '#4a3728',
-						type: 'extra-rounded'
-					},
-					cornersDotOptions: {
-						color: '#d97706',
-						type: 'dot'
-					},
-					backgroundOptions: {
-						color: '#ffffff'
-					}
-				};
-
-				// Add logo if event has one
-				if (logoUrl) {
-					qrOptions.image = logoUrl;
-					qrOptions.imageOptions = {
-						hideBackgroundDots: true,
-						imageSize: 0.4,
-						margin: 2,
-						crossOrigin: 'anonymous'
-					};
-					// Increase error correction to compensate for logo overlay
-					qrOptions.qrOptions = {
-						errorCorrectionLevel: 'H'
-					};
-				}
-
-				const qr = new QRCodeStyling(qrOptions);
-
-				const blob = await qr.getRawData('png');
-				if (blob && blob instanceof Blob) {
-					const dataUrl = await blobToDataUrl(blob);
-					qrDataUrls.push(dataUrl);
-				}
-			}
-
-			// Build printable HTML
-			const voters = voterCodes.map((code, i) => ({ code, number: i + 1 }));
-			const html = buildPrintableHtml(voters, qrDataUrls, data.event.name, data.eventCode);
-
-			// Open in new tab using blob URL (Safari discards about:blank documents during print)
-			const blob = new Blob([html], { type: 'text/html' });
-			const blobUrl = URL.createObjectURL(blob);
-			window.open(blobUrl, '_blank');
+			// Navigate to print page with voter codes
+			const printUrl = `/admin/events/${data.eventCode}/print?codes=${voterCodes.join(',')}`;
+			await goto(printUrl);
 		} finally {
 			isGeneratingQR = false;
 		}
 	}
 
-	function blobToDataUrl(blob: Blob): Promise<string> {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onloadend = () => resolve(reader.result as string);
-			reader.onerror = reject;
-			reader.readAsDataURL(blob);
-		});
-	}
-
-	function buildPrintableHtml(
-		voters: { code: string; number: number }[],
-		qrDataUrls: string[],
-		eventName: string,
-		eventCode: string
-	): string {
-		const cards = voters
-			.map(
-				(voter, i) => `
-			<div class="card">
-				<img src="${qrDataUrls[i]}" alt="QR Code" />
-				<div class="instruction">Scan to vote</div>
-				<div class="url">pintpoll.com/vote/${eventCode}/${voter.code}</div>
-			</div>
-		`
-			)
-			.join('');
-
-		return `<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<link rel="icon" href="/favicon.ico" sizes="32x32">
-	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-	<title>QR Codes - ${eventName}</title>
-	<style>
-		* {
-			margin: 0;
-			padding: 0;
-			box-sizing: border-box;
-		}
-
-		@page {
-			size: letter;
-			margin: 0.5in;
-		}
-
-		body {
-			font-family: system-ui, -apple-system, sans-serif;
-		}
-
-		.grid {
-			display: grid;
-			grid-template-columns: repeat(3, 1fr);
-			gap: 0;
-		}
-
-		.card {
-			border: 2px dashed #ccc;
-			padding: 12px;
-			text-align: center;
-			page-break-inside: avoid;
-			height: 2.5in;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-		}
-
-		.card img {
-			width: 120px;
-			height: 120px;
-		}
-
-		.instruction {
-			font-size: 12px;
-			color: #666;
-			margin-top: 4px;
-		}
-
-		.url {
-			font-size: 8px;
-			color: #999;
-			margin-top: 4px;
-			word-break: break-all;
-			max-width: 100%;
-		}
-
-		@media print {
-			.no-print {
-				display: none;
-			}
-		}
-	</style>
-</head>
-<body>
-	<div class="no-print" style="padding: 16px; background: #f5f5f5; margin-bottom: 16px;">
-		<strong>${eventName}</strong> — ${voters.length} QR codes
-		<button onclick="window.print()" style="margin-left: 16px; padding: 8px 16px; cursor: pointer;">
-			Print
-		</button>
-	</div>
-	<div class="grid">
-		${cards}
-	</div>
-</body>
-</html>`;
-	}
 </script>
 
 <svelte:head>
