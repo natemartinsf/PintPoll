@@ -56,6 +56,14 @@
 			.flatMap((t) => t.beers)
 	);
 
+	// Reset animation state when ceremony is reset
+	$effect(() => {
+		if (revealStage <= 1) {
+			confettiFired = false;
+			animatedPlaces = new Set();
+		}
+	});
+
 	// Trigger animations when stage changes
 	$effect(() => {
 		if (revealStage >= 2 && !animatedPlaces.has(3)) {
