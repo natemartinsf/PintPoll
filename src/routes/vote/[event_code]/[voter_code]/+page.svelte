@@ -30,6 +30,9 @@
 	// Scroll indicator state
 	let showScrollIndicator = $state(false);
 
+	// Voting instructions state (dismissed via localStorage)
+	let showInstructions = $state(false);
+
 	// Sync from server data (runs once on mount, and if data.beers changes)
 	$effect(() => {
 		beers = [...data.beers];
@@ -51,6 +54,16 @@
 			setTimeout(checkScrollIndicator, 0);
 		}
 	});
+
+	// Dismiss voting instructions
+	function dismissInstructions() {
+		showInstructions = false;
+		try {
+			localStorage.setItem('vote-instructions-dismissed', 'true');
+		} catch {
+			// localStorage unavailable
+		}
+	}
 
 	// Initialize votes from server data
 	$effect(() => {
@@ -98,6 +111,11 @@
 	// Handle vote change
 	async function handleVoteChange(beerId: string, newPoints: number) {
 		if (saving) return; // Prevent concurrent saves
+
+		// Auto-dismiss instructions on first interaction
+		if (showInstructions) {
+			dismissInstructions();
+		}
 
 		const oldPoints = votesByBeer[beerId] ?? 0;
 
@@ -215,6 +233,16 @@
 		window.addEventListener('scroll', checkScrollIndicator);
 		window.addEventListener('resize', checkScrollIndicator);
 
+		// Show voting instructions if not previously dismissed
+		try {
+			if (!localStorage.getItem('vote-instructions-dismissed')) {
+				showInstructions = true;
+			}
+		} catch {
+			// localStorage unavailable, show instructions
+			showInstructions = true;
+		}
+
 		// Subscribe to beer changes
 		const beersChannel = data.supabase
 			.channel('voter-beers')
@@ -312,6 +340,18 @@
 		{#if saveError}
 			<div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
 				{saveError}
+			</div>
+		{/if}
+
+		{#if showInstructions && beers.length > 0}
+			<div class="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center justify-between gap-2">
+				<span>Tap a beer to allocate points. You have {data.event.max_points ?? 5} points to distribute.</span>
+				<button
+					type="button"
+					onclick={dismissInstructions}
+					class="text-amber-600 hover:text-amber-800 font-medium px-1"
+					aria-label="Dismiss"
+				>×</button>
 			</div>
 		{/if}
 
