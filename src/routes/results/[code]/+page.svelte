@@ -157,15 +157,15 @@
 
 		<!-- Stage 1+: Ceremony has started -->
 	{:else}
-		<header class="py-8 text-center border-b border-brown-200">
+		<header class="text-center border-b border-brown-200 transition-all duration-500 {revealStage >= 2 ? 'py-3' : 'py-8'}">
 			{#if data.event.logo_url}
 				<img
 					src={data.event.logo_url}
 					alt="{data.event.name} logo"
-					class="h-16 md:h-20 w-auto object-contain mx-auto mb-4"
+					class="w-auto object-contain mx-auto transition-all duration-500 {revealStage >= 2 ? 'h-8 md:h-10 mb-2' : 'h-16 md:h-20 mb-4'}"
 				/>
 			{/if}
-			<h1 class="text-3xl md:text-5xl font-bold text-brown-900">{data.event.name}</h1>
+			<h1 class="font-bold text-brown-900 transition-all duration-500 {revealStage >= 2 ? 'text-xl md:text-2xl' : 'text-3xl md:text-5xl'}">{data.event.name}</h1>
 		</header>
 
 		<main class="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
@@ -191,21 +191,19 @@
 				</div>
 			{/if}
 
-			<!-- Ceremony summary - shrinks once reveals start -->
-			<div class="grid grid-cols-3 gap-4 mb-12 text-center transition-all duration-500 {revealStage >= 1 ? 'stats-compact' : ''}">
-				<div class="card {revealStage >= 1 ? 'py-3' : 'py-6'}">
-					<div class="{revealStage >= 1 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl'} font-bold text-amber-600 transition-all duration-500">{data.stats.beerCount}</div>
-					<div class="text-sm text-muted mt-1">Beers</div>
+			<!-- Ceremony summary - shrinks once 3rd place revealed -->
+			<div class="grid grid-cols-3 gap-2 text-center transition-all duration-500 {revealStage >= 2 ? 'mb-6' : 'mb-12'}">
+				<div class="card transition-all duration-500 {revealStage >= 2 ? 'py-2 px-2' : 'py-6'}">
+					<div class="font-bold text-amber-600 transition-all duration-500 {revealStage >= 2 ? 'text-lg' : 'text-4xl md:text-5xl'}">{data.stats.beerCount}</div>
+					<div class="text-muted transition-all duration-500 {revealStage >= 2 ? 'text-xs' : 'text-sm mt-1'}">Beers</div>
 				</div>
-				<div class="card {revealStage >= 1 ? 'py-3' : 'py-6'}">
-					<div class="{revealStage >= 1 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl'} font-bold text-amber-600 transition-all duration-500">{data.stats.voterCount}</div>
-					<div class="text-sm text-muted mt-1">Voters</div>
+				<div class="card transition-all duration-500 {revealStage >= 2 ? 'py-2 px-2' : 'py-6'}">
+					<div class="font-bold text-amber-600 transition-all duration-500 {revealStage >= 2 ? 'text-lg' : 'text-4xl md:text-5xl'}">{data.stats.voterCount}</div>
+					<div class="text-muted transition-all duration-500 {revealStage >= 2 ? 'text-xs' : 'text-sm mt-1'}">Voters</div>
 				</div>
-				<div class="card {revealStage >= 1 ? 'py-3' : 'py-6'}">
-					<div class="{revealStage >= 1 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl'} font-bold text-amber-600 transition-all duration-500">
-						{data.stats.totalPointsCast}
-					</div>
-					<div class="text-sm text-muted mt-1">Points Cast</div>
+				<div class="card transition-all duration-500 {revealStage >= 2 ? 'py-2 px-2' : 'py-6'}">
+					<div class="font-bold text-amber-600 transition-all duration-500 {revealStage >= 2 ? 'text-lg' : 'text-4xl md:text-5xl'}">{data.stats.totalPointsCast}</div>
+					<div class="text-muted transition-all duration-500 {revealStage >= 2 ? 'text-xs' : 'text-sm mt-1'}">Points Cast</div>
 				</div>
 			</div>
 
@@ -314,15 +312,13 @@
 				{/if}
 			</div>
 
-			<!-- Waiting message between stages -->
+			<!-- Waiting message for stage 1 -->
 			{#if revealStage === 1}
 				<div class="text-center py-12">
 					<div class="text-4xl mb-4">🎉</div>
 					<p class="text-xl text-brown-700">The ceremony has begun!</p>
 					<p class="text-muted mt-2">Get ready for the results...</p>
 				</div>
-			{:else if revealStage === 2}
-				<div class="text-center py-8 text-muted">And now... 2nd place coming up!</div>
 			{/if}
 		</main>
 	{/if}
