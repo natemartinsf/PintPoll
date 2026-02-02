@@ -19,10 +19,16 @@
 	let isRefreshingVotes = $state(false);
 	let blindTasting = $state(false);
 	let brewerCodeMap = $state<Record<string, string>>({});
+	let revealStage = $state(0);
 
 	// Sync blind tasting state with props (only on initial load or navigation)
 	$effect(() => {
 		blindTasting = data.event.blind_tasting ?? false;
+	});
+
+	// Sync reveal stage with props
+	$effect(() => {
+		revealStage = data.event.reveal_stage ?? 0;
 	});
 
 	$effect(() => {
@@ -594,15 +600,15 @@
 		<div class="mb-4">
 			<p class="text-sm text-muted">
 				Current status:
-				{#if data.event.reveal_stage === 0}
+				{#if revealStage === 0}
 					<span class="text-brown-700 font-medium">Hidden</span> — Voting active
-				{:else if data.event.reveal_stage === 1}
+				{:else if revealStage === 1}
 					<span class="text-amber-600 font-medium">Ceremony Started</span> — Voters redirected to results
-				{:else if data.event.reveal_stage === 2}
+				{:else if revealStage === 2}
 					<span class="text-amber-600 font-medium">3rd Place Revealed</span>
-				{:else if data.event.reveal_stage === 3}
+				{:else if revealStage === 3}
 					<span class="text-amber-600 font-medium">2nd Place Revealed</span>
-				{:else if data.event.reveal_stage === 4}
+				{:else if revealStage === 4}
 					<span class="text-green-600 font-medium">1st Place Revealed</span> — Ceremony complete
 				{/if}
 			</p>
@@ -610,21 +616,38 @@
 
 		<!-- Stage Control Buttons -->
 		<div class="flex items-center gap-3">
-			<form method="POST" action="?/advanceStage" use:enhance>
-				{#if data.event.reveal_stage === 0}
+			<form
+				method="POST"
+				action="?/advanceStage"
+				use:enhance={() => {
+					// Optimistic update
+					const previousStage = revealStage;
+					if (revealStage < 4) {
+						revealStage++;
+					}
+					return async ({ result }) => {
+						if (result.type === 'failure') {
+							// Revert on error
+							revealStage = previousStage;
+						}
+						// Don't call update() - we already updated optimistically
+					};
+				}}
+			>
+				{#if revealStage === 0}
 					<button type="submit" class="btn-primary">Start Ceremony</button>
-				{:else if data.event.reveal_stage === 1}
+				{:else if revealStage === 1}
 					<button type="submit" class="btn-primary">Reveal 3rd Place</button>
-				{:else if data.event.reveal_stage === 2}
+				{:else if revealStage === 2}
 					<button type="submit" class="btn-primary">Reveal 2nd Place</button>
-				{:else if data.event.reveal_stage === 3}
+				{:else if revealStage === 3}
 					<button type="submit" class="btn-primary">Reveal 1st Place</button>
 				{:else}
 					<button type="submit" disabled class="btn-primary opacity-50 cursor-not-allowed">Ceremony Complete</button>
 				{/if}
 			</form>
 
-			{#if (data.event.reveal_stage ?? 0) > 0}
+			{#if revealStage > 0}
 				<form
 					method="POST"
 					action="?/resetStage"
@@ -632,8 +655,15 @@
 						if (!confirm('Reset the ceremony? This will hide results and allow voting again.')) {
 							return () => {};
 						}
-						return async ({ update }) => {
-							await update();
+						// Optimistic update
+						const previousStage = revealStage;
+						revealStage = 0;
+						return async ({ result }) => {
+							if (result.type === 'failure') {
+								// Revert on error
+								revealStage = previousStage;
+							}
+							// Don't call update() - we already updated optimistically
 						};
 					}}
 				>
