@@ -27,9 +27,29 @@
 	// Track feedback saves separately (don't block votes)
 	let savingFeedback = $state<Record<string, boolean>>({});
 
+	// Scroll indicator state
+	let showScrollIndicator = $state(false);
+
 	// Sync from server data (runs once on mount, and if data.beers changes)
 	$effect(() => {
 		beers = [...data.beers];
+	});
+
+	// Check if there's more content to scroll (window-based)
+	function checkScrollIndicator() {
+		const scrollTop = window.scrollY;
+		const windowHeight = window.innerHeight;
+		const docHeight = document.documentElement.scrollHeight;
+		// Show indicator if there's content below (with 50px threshold)
+		showScrollIndicator = docHeight - scrollTop - windowHeight > 50;
+	}
+
+	// Recheck scroll indicator when beers change
+	$effect(() => {
+		if (beers.length) {
+			// Defer to let DOM update
+			setTimeout(checkScrollIndicator, 0);
+		}
 	});
 
 	// Initialize votes from server data
@@ -188,8 +208,13 @@
 		await saveFeedback(beerId);
 	}
 
-	// Real-time subscriptions
+	// Real-time subscriptions and scroll indicator
 	onMount(() => {
+		// Set up scroll indicator
+		checkScrollIndicator();
+		window.addEventListener('scroll', checkScrollIndicator);
+		window.addEventListener('resize', checkScrollIndicator);
+
 		// Subscribe to beer changes
 		const beersChannel = data.supabase
 			.channel('voter-beers')
@@ -248,6 +273,8 @@
 			.subscribe();
 
 		return () => {
+			window.removeEventListener('scroll', checkScrollIndicator);
+			window.removeEventListener('resize', checkScrollIndicator);
 			data.supabase.removeChannel(beersChannel);
 			data.supabase.removeChannel(eventChannel);
 		};
@@ -369,3 +396,10 @@
 		</a>
 	</footer>
 </div>
+
+<!-- Scroll indicator -->
+{#if showScrollIndicator && beers.length > 0}
+	<div class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-brown-800/80 text-white text-sm px-3 py-1.5 rounded-full backdrop-blur-sm pointer-events-none">
+		<span class="mr-1">↓</span> More beers
+	</div>
+{/if}
